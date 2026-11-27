@@ -104,3 +104,12 @@ S7  Three-term relation: rho'^5 + (sigma rho')^5 = 2^j eps' W^5. B_i = rho' + ze
 S8  Backward: if the new solution is trivial (B_0 = 2 u0, B_1, B_4 units) then u1 + u4 = -2 phi u0, i.e. v + w = 2 in
     units of Z[phi]: v in {1, phi, phi^-1, phi^2, phi^-2, -phi^-1}; integrality of rho' = u0((1+zeta)v - 2 zeta)/lambda
     forces v = 1 mod lambda, so v = 1 and rho' = u0 is a unit (back.py), contradiction.
+
+## RESULT (2026-11-27)
+Full H4 proof assembled (Erdos672.erdos_672.variants.oblath.R1.H4.lean, 3624 lines):
+`tools/oma.sh check` -> ACCEPTED, axioms propext / Classical.choice / Quot.sound.
+Contents: Denes l=5 for A=2,8 in full (cases a, b, c), with Eisenstein reciprocity for 2 (Eis2.lean),
+degree-one lemma, residue symbol computation, real-subfield descent (CaseA1-5.lean).
+Node status: H4 was already settled upstream a few hours earlier via a different tree
+(H4.R1 by @mudkjp, PR 3625; children by @nijv PR 5575 and @hananzlt PR 6478, using Dirichlet and
+Lebesgue 1843), so this proof cannot be submitted for credit on that node.
