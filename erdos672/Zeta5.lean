@@ -1094,6 +1094,121 @@ lemma fifth_of_coprime {γ R w : 𝓞 K5} {E : (𝓞 K5)ˣ} {j : ℕ} (hcop : Is
   obtain ⟨t, e, he⟩ := exists_associated_pow_of_mul_eq_pow' hcopR' hγR'
   exact ⟨t, e, by rw [← he, mul_comm]⟩
 
+lemma not_lam_dvd_unit (e : (𝓞 K5)ˣ) : ¬ lam ∣ (e : 𝓞 K5) := by
+  intro h; apply lam_not_dvd_one
+  exact dvd_trans h ⟨↑e⁻¹, by simp⟩
+
+lemma not_lam_dvd_mul {a b : 𝓞 K5} (ha : ¬ lam ∣ a) (hb : ¬ lam ∣ b) : ¬ lam ∣ a * b := by
+  intro h; rcases lam_prime.dvd_or_dvd h with h | h <;> contradiction
+
+lemma not_lam_dvd_pow {a : 𝓞 K5} (ha : ¬ lam ∣ a) (n : ℕ) : ¬ lam ∣ a ^ n := by
+  intro h; exact ha (lam_prime.dvd_of_dvd_pow h)
+
+lemma not_lam_dvd_two_pow (n : ℕ) : ¬ lam ∣ (2 : 𝓞 K5) ^ n := not_lam_dvd_pow lam_not_dvd_two n
+
+/-- The factor `u + ζ^i v` is `λ γ` with `λ ∤ γ`, when `λ² ∣ u + v` and `λ ∤ v`. -/
+lemma factor_i {u v : 𝓞 K5} (hv : ¬ lam ∣ v) (h2 : lam ^ 2 ∣ u + v) (i : ℕ)
+    (hi : i = 1 ∨ i = 2 ∨ i = 3 ∨ i = 4) : ∃ γ : 𝓞 K5, u + ζ ^ i * v = lam * γ ∧ ¬ lam ∣ γ := by
+  obtain ⟨w, hw, he⟩ := one_sub_pow_eq i hi
+  obtain ⟨m, hm⟩ := h2
+  refine ⟨lam * m - w * v, by linear_combination hm - v * he, ?_⟩
+  intro hl
+  have : lam ∣ w * v := by have := dvd_sub (dvd_mul_right lam m) hl; simpa using this
+  rcases lam_prime.dvd_or_dvd this with h | h
+  · obtain ⟨wu, rfl⟩ := hw; exact not_lam_dvd_unit wu h
+  · exact hv h
+
+/-- Uniform finish of the descent once a good pair `r < s` is chosen. -/
+lemma maillet_finish {μ : ℕ} (hμ : 1 ≤ μ)
+    (IH : ∀ (j : ℕ) (u v w : 𝓞 K5) (E : (𝓞 K5)ˣ), ¬ lam ∣ u → ¬ lam ∣ v → ¬ lam ∣ w →
+      IsCoprime u v → u ^ 5 + v ^ 5 = E * lam ^ (5 * (μ - 1) + 5) * 2 ^ j * w ^ 5 → False)
+    {u v γ0 γr γs : 𝓞 K5} {r s : ℕ} (hrs : r < s) (hs5 : s < 5) (hr1 : 1 ≤ r)
+    (h0 : u + v = lam ^ (5 * μ + 1) * γ0) (hr : u + ζ ^ r * v = lam * γr)
+    (hsv : u + ζ ^ s * v = lam * γs)
+    (hcrs : IsCoprime γr γs) (hlr : ¬ lam ∣ γr) (hls : ¬ lam ∣ γs) (hl0 : ¬ lam ∣ γ0)
+    {er es : (𝓞 K5)ˣ} {tr ts : 𝓞 K5} (her : γr = er * tr ^ 5) (hes : γs = es * ts ^ 5)
+    {j0 : ℕ} {e0 : (𝓞 K5)ˣ} {w0 : 𝓞 K5} (he0 : γ0 = 2 ^ j0 * (e0 * w0 ^ 5)) : False := by
+  obtain ⟨wr, hwr, her'⟩ := one_sub_pow_eq r (by omega)
+  obtain ⟨ws, hws, hes'⟩ := one_sub_pow_eq s (by omega)
+  obtain ⟨wrs, hwrs, herss⟩ := diff_eq hrs hs5
+  -- elimination: -ws γr + wr γs = wrs λ^(5μ) γ0
+  have hel : -(ws * γr) + wr * γs = wrs * lam ^ (5 * μ) * γ0 := by
+    have hid : (ζ ^ s - 1) * (u + ζ ^ r * v) - (ζ ^ r - 1) * (u + ζ ^ s * v) = (ζ ^ s - ζ ^ r) * (u + v) := by
+      ring
+    rw [hr, hsv, h0, herss, show ζ ^ s - 1 = -(1 - ζ ^ s) by ring, show ζ ^ r - 1 = -(1 - ζ ^ r) by ring,
+      hes', her'] at hid
+    apply mul_left_cancel₀ (pow_ne_zero 2 lam_ne_zero)
+    linear_combination hid
+  -- units
+  obtain ⟨Ws, rfl⟩ := hws
+  obtain ⟨Wr, rfl⟩ := hwr
+  obtain ⟨Wrs, rfl⟩ := hwrs
+  set A : (𝓞 K5)ˣ := -(Ws * er) with hA
+  set ε : (𝓞 K5)ˣ := A⁻¹ * (Wr * es) with hε
+  set E2 : (𝓞 K5)ˣ := A⁻¹ * (Wrs * e0) with hE2
+  have hAA : (A : 𝓞 K5) * ↑A⁻¹ = 1 := by simp
+  have hAv : (A : 𝓞 K5) = -((Ws : 𝓞 K5) * er) := by simp [hA]
+  have hεv : (ε : 𝓞 K5) = ↑A⁻¹ * ((Wr : 𝓞 K5) * es) := by simp [hε]
+  have hE2v : (E2 : 𝓞 K5) = ↑A⁻¹ * ((Wrs : 𝓞 K5) * e0) := by simp [hE2]
+  have hnew : tr ^ 5 + (ε : 𝓞 K5) * ts ^ 5 = E2 * lam ^ (5 * μ) * 2 ^ j0 * w0 ^ 5 := by
+    rw [her, hes, he0] at hel
+    have key : (A : 𝓞 K5) * (tr ^ 5 + (ε : 𝓞 K5) * ts ^ 5)
+        = A * (E2 * lam ^ (5 * μ) * 2 ^ j0 * w0 ^ 5) := by
+      rw [hεv, hE2v]
+      have e1 : (A : 𝓞 K5) * (tr ^ 5 + ↑A⁻¹ * ((Wr : 𝓞 K5) * es) * ts ^ 5)
+          = A * tr ^ 5 + (A * ↑A⁻¹) * ((Wr : 𝓞 K5) * es * ts ^ 5) := by ring
+      have e2 : (A : 𝓞 K5) * (↑A⁻¹ * ((Wrs : 𝓞 K5) * e0) * lam ^ (5 * μ) * 2 ^ j0 * w0 ^ 5)
+          = (A * ↑A⁻¹) * ((Wrs : 𝓞 K5) * e0 * lam ^ (5 * μ) * 2 ^ j0 * w0 ^ 5) := by ring
+      rw [e1, e2, hAA, hAv]
+      linear_combination hel
+    exact mul_left_cancel₀ A.ne_zero key
+  -- Kummer: ε is a fifth power
+  have hltr : ¬ lam ∣ tr := fun h => hlr (by rw [her]; exact dvd_mul_of_dvd_right (dvd_pow h (by norm_num)) _)
+  have hlts : ¬ lam ∣ ts := fun h => hls (by rw [hes]; exact dvd_mul_of_dvd_right (dvd_pow h (by norm_num)) _)
+  have hlw0 : ¬ lam ∣ w0 := by
+    intro h; apply hl0; rw [he0]
+    exact dvd_mul_of_dvd_right (dvd_mul_of_dvd_right (dvd_pow h (by norm_num)) _) _
+  obtain ⟨cr, hcr⟩ := exists_int_congr tr
+  obtain ⟨cs, hcs⟩ := exists_int_congr ts
+  have hcr5 := pow_five_congr hcr
+  have hcs5 := pow_five_congr hcs
+  have h5 : lam ^ 5 ∣ tr ^ 5 + (ε : 𝓞 K5) * ts ^ 5 := by
+    rw [hnew]
+    exact dvd_mul_of_dvd_left (dvd_mul_of_dvd_left (dvd_mul_of_dvd_right (pow_dvd_pow lam (by omega)) _) _) _
+  have hcop_cs : IsCoprime (cs ^ 5) 125 := by
+    have hp : Prime (5 : ℤ) := Int.prime_iff_natAbs_prime.mpr (by norm_num)
+    have h5c : ¬ (5 : ℤ) ∣ cs := by
+      intro h5; apply hlts
+      have hlc : lam ∣ (cs : 𝓞 K5) := by simpa using lam_pow_dvd_of_five_dvd h5 (j := 1) (by norm_num)
+      have := dvd_add hcs hlc; simpa using this
+    have : IsCoprime cs 5 := ((Prime.coprime_iff_not_dvd hp).mpr h5c).symm
+    rw [show (125 : ℤ) = 5 ^ 3 by norm_num]; exact this.pow
+  obtain ⟨a, b, hab⟩ := hcop_cs
+  have hεc : lam ^ 3 ∣ (ε : 𝓞 K5) - ((-(a * cr ^ 5)) : ℤ) := by
+    have e1 : lam ^ 3 ∣ tr ^ 5 + (ε : 𝓞 K5) * ts ^ 5 := dvd_trans (pow_dvd_pow lam (by norm_num)) h5
+    have e2 : lam ^ 3 ∣ (tr ^ 5 - (cr : 𝓞 K5) ^ 5) + (ε : 𝓞 K5) * (ts ^ 5 - (cs : 𝓞 K5) ^ 5) :=
+      dvd_add (dvd_trans (pow_dvd_pow lam (by norm_num)) hcr5)
+        (dvd_mul_of_dvd_right (dvd_trans (pow_dvd_pow lam (by norm_num)) hcs5) _)
+    have e3 : lam ^ 3 ∣ (a : 𝓞 K5) * ((cr : 𝓞 K5) ^ 5 + (ε : 𝓞 K5) * (cs : 𝓞 K5) ^ 5) := by
+      apply dvd_mul_of_dvd_right; have := dvd_sub e1 e2; convert this using 1; ring
+    have e4 : lam ^ 3 ∣ (ε : 𝓞 K5) * ((b : 𝓞 K5) * 125) :=
+      dvd_mul_of_dvd_right (dvd_mul_of_dvd_right lam_pow_three_dvd_125 _) _
+    have hab' : (a : 𝓞 K5) * (cs : 𝓞 K5) ^ 5 + (b : 𝓞 K5) * 125 = 1 := by exact_mod_cast hab
+    have := dvd_add e3 e4
+    convert this using 1; push_cast; linear_combination (-(ε : 𝓞 K5)) * hab'
+  obtain ⟨η, hη⟩ := kummer_lemma ε _ hεc
+  -- apply the induction hypothesis
+  apply IH j0 tr (η * ts) w0 E2 hltr (not_lam_dvd_mul (not_lam_dvd_unit η) hlts) hlw0
+  · have h1 : IsCoprime (tr ^ 5) (ts ^ 5) := by
+      have := hcrs; rw [her, hes] at this
+      exact ((isCoprime_mul_unit_left_left er.isUnit _ _).mp
+        ((isCoprime_mul_unit_left_right es.isUnit _ _).mp this))
+    have h2 : IsCoprime tr ts := IsCoprime.of_isCoprime_of_dvd_left
+      (IsCoprime.of_isCoprime_of_dvd_right h1 (dvd_pow_self ts (by norm_num))) (dvd_pow_self tr (by norm_num))
+    exact (isCoprime_mul_unit_left_right η.isUnit _ _).mpr h2
+  · rw [show 5 * (μ - 1) + 5 = 5 * μ by omega, mul_pow, ← Units.val_pow_eq_pow_val, ← hη]
+    exact hnew
+
 end CaseC
 
 end OMA672Z5
