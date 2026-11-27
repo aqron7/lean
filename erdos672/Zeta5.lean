@@ -706,6 +706,72 @@ theorem two_prime : Prime (2 : 𝓞 K5) := by
       apply two_dvd_of_coord
       simp only [even_iff_cast]; exact ⟨ha, hb, hc, he⟩
 
+/-- `F₁₆` as quadruples over `F₂` (basis `1, ζ, ζ², ζ³`). -/
+abbrev F16 := ZMod 2 × ZMod 2 × ZMod 2 × ZMod 2
+
+def mul16 (x y : F16) : F16 :=
+  let (a, b, c, e) := x
+  let (A, B, C, E) := y
+  (A*a - B*e - C*c + C*e - E*b + E*c, A*b + B*a - B*e - C*c - E*b + E*e,
+   A*c + B*b - B*e + C*a - C*c - E*b, A*e + B*c - B*e + C*b - C*c + E*a - E*b)
+
+def pow5_16 (x : F16) : F16 := mul16 x (mul16 x (mul16 x (mul16 x x)))
+
+/-- `α` reduces to `v` modulo 2. -/
+def HasRed (α : 𝓞 K5) (v : F16) : Prop :=
+  ∃ a b c e : ℤ, α = a + b * ζ + c * ζ ^ 2 + e * ζ ^ 3 ∧ v = ((a : ZMod 2), (b : ZMod 2), (c : ZMod 2), (e : ZMod 2))
+
+lemma hasRed_exists (α : 𝓞 K5) : ∃ v, HasRed α v := by
+  obtain ⟨a, b, c, e, h⟩ := exists_coord α
+  exact ⟨_, a, b, c, e, h, rfl⟩
+
+lemma HasRed.mul {α β : 𝓞 K5} {v w : F16} (hα : HasRed α v) (hβ : HasRed β w) :
+    HasRed (α * β) (mul16 v w) := by
+  obtain ⟨a, b, c, e, rfl, rfl⟩ := hα
+  obtain ⟨A, B, C, E, rfl, rfl⟩ := hβ
+  refine ⟨_, _, _, _, mul_coord a b c e A B C E, ?_⟩
+  simp only [mul16]; push_cast; rfl
+
+lemma HasRed.add {α β : 𝓞 K5} {v w : F16} (hα : HasRed α v) (hβ : HasRed β w) :
+    HasRed (α + β) (v + w) := by
+  obtain ⟨a, b, c, e, rfl, rfl⟩ := hα
+  obtain ⟨A, B, C, E, rfl, rfl⟩ := hβ
+  refine ⟨a + A, b + B, c + C, e + E, by push_cast; ring, ?_⟩
+  push_cast; rfl
+
+lemma hasRed_ζ : HasRed ζ (0, 1, 0, 0) := ⟨0, 1, 0, 0, by push_cast; ring, by rfl⟩
+
+lemma HasRed.pow5 {α : 𝓞 K5} {v : F16} (h : HasRed α v) : HasRed (α ^ 5) (pow5_16 v) := by
+  have := h.mul (h.mul (h.mul (h.mul h)))
+  simpa [pow5_16, pow_succ, mul_comm, mul_assoc, mul_left_comm] using this
+
+lemma HasRed.two_dvd {α : 𝓞 K5} {v : F16} (h : HasRed α v) : (2 : 𝓞 K5) ∣ α ↔ v = 0 := by
+  obtain ⟨a, b, c, e, rfl, rfl⟩ := h
+  constructor
+  · intro h2
+    obtain ⟨h0, h1, h2', h3⟩ := two_dvd_coord h2
+    rw [even_iff_cast] at h0 h1 h2' h3
+    simp [h0, h1, h2', h3]
+  · intro h0
+    simp only [Prod.mk_eq_zero] at h0
+    apply two_dvd_of_coord
+    simp only [even_iff_cast]; exact ⟨h0.1, h0.2.1, h0.2.2.1, h0.2.2.2⟩
+
+set_option synthInstance.maxHeartbeats 2000000 in
+set_option synthInstance.maxSize 2000 in
+set_option maxRecDepth 100000 in
+lemma F16_zeta_not_fifth : ∀ x y : F16, mul16 (0, 1, 0, 0) (pow5_16 y) + pow5_16 x = 0 → y = 0 := by
+  decide
+
+/-- `ζ` is not a fifth power modulo `2`: if `2 ∣ ζ y⁵ + x⁵` then `2 ∣ y`. -/
+theorem zeta_not_fifth_mod_two {x y : 𝓞 K5} (h : (2 : 𝓞 K5) ∣ ζ * y ^ 5 + x ^ 5) :
+    (2 : 𝓞 K5) ∣ y := by
+  obtain ⟨v, hv⟩ := hasRed_exists x
+  obtain ⟨w, hw⟩ := hasRed_exists y
+  have hred := (hasRed_ζ.mul hw.pow5).add hv.pow5
+  rw [hred.two_dvd] at h
+  exact hw.two_dvd.mpr (F16_zeta_not_fifth v w h)
+
 end Two
 
 end OMA672Z5
