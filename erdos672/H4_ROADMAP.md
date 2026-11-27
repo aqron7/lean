@@ -8,7 +8,7 @@ Unified view: a nontrivial H4 solution is a rational point (m/b^2, d/b^5) on Y^2
 2. DONE  Coordinates: every element of O_K = a0 + a1 z + a2 z^2 + a3 z^3 uniquely (integralPowerBasis, dim 4).
 3. DONE (core) lambda = 1 - z: lambda^4 = unit * 5; O/lambda = F_5; every alpha = c (mod lambda) with c in Z; alpha^5 = c^5 (mod lambda^5).
 4. 2 is prime (inert): O/2 = F_16.
-5. Units: every unit = zeta^k * (real unit); real units of Z[phi] are +-phi^m (descent on a + b phi).
+5. PARTIAL (real units of Z[phi] = +-phi^m proved, GoldenUnits.lean) Units: every unit = zeta^k * (real unit); real units of Z[phi] are +-phi^m (descent on a + b phi).
 6. Kummer lemma for p=5: a unit congruent to a rational integer mod lambda^5 is a fifth power (finite check on phi^m mod 5).
 7. Denes case lambda does not divide z: x + zeta y = unit * alpha^5 for each conjugate; compare mod lambda^5.
 8. Denes case lambda | z: descent on v_lambda(z) as in Mathlib FLT/Three.lean.
