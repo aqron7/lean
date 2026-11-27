@@ -354,4 +354,141 @@ lemma caseB {u v w s : ℤ} (hu : u ≠ 0) (hs : 0 < s) (hv : 0 ≤ v)
     · linarith
   · nlinarith [mul_nonneg hv hs.le]
 
+lemma no_large_prime_two {n d p i j : ℕ} (hnd : n.gcd d = 1) (hp : p.Prime) (hp6 : ¬ p ∣ 6)
+    (hi : i < 5) (hj : j < 5) (hij : i ≠ j) (hpi : p ∣ n + i * d) (hpj : p ∣ n + j * d) : False := by
+  have hp5 : 5 ≤ p := by
+    by_contra hlt; push_neg at hlt
+    interval_cases p <;> first | (norm_num at hp; done) | (norm_num at hp6; done) | norm_num at hp hp6
+  wlog hlt : i < j generalizing i j
+  · exact this hj hi (Ne.symm hij) hpj hpi (by omega)
+  have hdiff : p ∣ (j - i) * d := by
+    have : n + j * d = (n + i * d) + (j - i) * d := by
+      rw [Nat.sub_mul]; have : i * d ≤ j * d := Nat.mul_le_mul_right _ hlt.le; omega
+    rw [this] at hpj
+    exact (Nat.dvd_add_right hpi).mp hpj
+  rcases (Nat.Prime.dvd_mul hp).mp hdiff with h | h
+  · have : p ≤ j - i := Nat.le_of_dvd (by omega) h
+    omega
+  · have hpn : p ∣ n := (Nat.dvd_add_left (Dvd.dvd.mul_left h i)).mp hpi
+    have : p ∣ Nat.gcd n d := Nat.dvd_gcd hpn h
+    rw [hnd] at this
+    exact hp.one_lt.ne' (Nat.dvd_one.mp this)
+
+theorem ap5_ne_sq {n d q : ℕ} (hn : 0 < n) (hd : 0 < d) (hnd : n.gcd d = 1)
+    (h : n * ((n + d) * ((n + 2 * d) * ((n + 3 * d) * (n + 4 * d)))) = q ^ 2) : False := by
+  have hpos : ∀ i : ℕ, 0 < n + i * d := fun i => by positivity
+  have hsplit : ∀ i : ℕ, ∃ c b : ℕ, 0 < c ∧ 0 < b ∧ b ^ 2 * c = n + i * d ∧ Squarefree c :=
+    fun i => Nat.sq_mul_squarefree_of_pos (hpos i)
+  choose c b hc hb hbc hsf using hsplit
+  have hprodA : ∏ i ∈ Finset.range 5, (n + i * d) = q ^ 2 := by
+    rw [← h]; simp [Finset.prod_range_succ]; ring
+  have hprod : (∏ i ∈ Finset.range 5, b i) ^ 2 * ∏ i ∈ Finset.range 5, c i = q ^ 2 := by
+    rw [← hprodA, ← Finset.prod_pow, ← Finset.prod_mul_distrib]
+    exact Finset.prod_congr rfl (fun i _ => hbc i)
+  set B := ∏ i ∈ Finset.range 5, b i with hB
+  set C := ∏ i ∈ Finset.range 5, c i with hC
+  have hB0 : B ≠ 0 := Finset.prod_ne_zero_iff.mpr (fun i _ => (hb i).ne')
+  have hBq : B ∣ q := (Nat.pow_dvd_pow_iff two_ne_zero).mp ⟨C, hprod.symm⟩
+  obtain ⟨r, hr⟩ := hBq
+  have hCr : C = r ^ 2 := by
+    have : B ^ 2 * C = B ^ 2 * r ^ 2 := by rw [hprod, hr]; ring
+    exact Nat.eq_of_mul_eq_mul_left (by positivity) this
+  -- each squarefree part divides 6
+  have hc6 : ∀ i, i < 5 → c i ∣ 6 := by
+    intro i hi
+    have hpf : ∀ p, p.Prime → p ∣ c i → p ∣ 6 := by
+      intro p hp hpc
+      by_contra hp6
+      have hpC : p ∣ C := dvd_trans hpc (Finset.dvd_prod_of_mem _ (Finset.mem_range.mpr hi))
+      rw [hCr] at hpC
+      have hpr : p ∣ r := hp.dvd_of_dvd_pow hpC
+      have hp2C : p ^ 2 ∣ C := by rw [hCr]; exact pow_dvd_pow_of_dvd hpr 2
+      rw [hC, ← Finset.mul_prod_erase _ _ (Finset.mem_range.mpr hi)] at hp2C
+      have hrest : ¬ p ∣ ∏ j ∈ (Finset.range 5).erase i, c j := by
+        intro hpe
+        obtain ⟨j, hj, hpj⟩ := (Prime.dvd_finsetProd_iff hp.prime _).mp hpe
+        obtain ⟨hji, hj5⟩ := Finset.mem_erase.mp hj
+        exact no_large_prime_two hnd hp hp6 hi (Finset.mem_range.mp hj5) (Ne.symm hji)
+          (dvd_trans hpc ⟨b i ^ 2, by rw [← hbc i]; ring⟩)
+          (dvd_trans hpj ⟨b j ^ 2, by rw [← hbc j]; ring⟩)
+      have hcop : Nat.Coprime (p ^ 2) (∏ j ∈ (Finset.range 5).erase i, c j) :=
+        Nat.Coprime.pow_left 2 ((Nat.Prime.coprime_iff_not_dvd hp).mpr hrest)
+      have : p * p ∣ c i := by rw [← sq]; exact hcop.dvd_of_dvd_mul_right hp2C
+      exact (Nat.squarefree_iff_prime_squarefree.mp (hsf i)) p hp this
+    rw [← Nat.prod_primeFactors_of_squarefree (hsf i)]
+    have h6 : ∏ p ∈ (6 : ℕ).primeFactors, p = 6 :=
+      Nat.prod_primeFactors_of_squarefree (by decide +kernel)
+    rw [← h6]
+    apply Finset.prod_dvd_prod_of_subset
+    intro p hp
+    rw [Nat.mem_primeFactors] at hp ⊢
+    exact ⟨hp.1, hpf p hp.1 hp.2.1, by norm_num⟩
+  have hk : ∀ i, i < 5 → ∃ k : Fin 4, c i = cv k := by
+    intro i hi
+    have h1 := hc6 i hi
+    have h2 : c i ≤ 6 := Nat.le_of_dvd (by norm_num) h1
+    have h3 := hc i
+    interval_cases hci : c i
+    · exact ⟨0, rfl⟩
+    · exact ⟨1, rfl⟩
+    · exact ⟨2, rfl⟩
+    · norm_num at h1
+    · norm_num at h1
+    · exact ⟨3, rfl⟩
+  obtain ⟨k0, hk0⟩ := hk 0 (by norm_num)
+  obtain ⟨k1, hk1⟩ := hk 1 (by norm_num)
+  obtain ⟨k2, hk2⟩ := hk 2 (by norm_num)
+  obtain ⟨k3, hk3⟩ := hk 3 (by norm_num)
+  obtain ⟨k4, hk4⟩ := hk 4 (by norm_num)
+  have e0 : n = b 0 ^ 2 * cv k0 := by rw [← hk0, hbc 0]; ring
+  have e1 : n + d = b 1 ^ 2 * cv k1 := by rw [← hk1, hbc 1]; ring
+  have e2 : n + 2 * d = b 2 ^ 2 * cv k2 := by rw [← hk2, hbc 2]
+  have e3 : n + 3 * d = b 3 ^ 2 * cv k3 := by rw [← hk3, hbc 3]
+  have e4 : n + 4 * d = b 4 ^ 2 * cv k4 := by rw [← hk4, hbc 4]
+  -- local conditions
+  have hnotboth : ∀ p, p.Prime → ¬ (p ∣ n ∧ p ∣ d) := by
+    rintro p hp ⟨h1, h2⟩
+    have : p ∣ Nat.gcd n d := Nat.dvd_gcd h1 h2
+    rw [hnd] at this; exact hp.one_lt.ne' (Nat.dvd_one.mp this)
+  have h16 := loc16 ⟨n % 16, Nat.mod_lt _ (by norm_num)⟩ ⟨d % 16, Nat.mod_lt _ (by norm_num)⟩
+    (by have := hnotboth 2 Nat.prime_two; simp only; omega) k0
+    (ok_intro (by norm_num) (by simp only; rw [← e0]; omega)) k1
+    (ok_intro (by norm_num) (by simp only; rw [← e1]; omega)) k2
+    (ok_intro (by norm_num) (by simp only; rw [← e2]; omega)) k3
+    (ok_intro (by norm_num) (by simp only; rw [← e3]; omega)) k4
+    (ok_intro (by norm_num) (by simp only; rw [← e4]; omega))
+  have h9 := loc9 ⟨n % 9, Nat.mod_lt _ (by norm_num)⟩ ⟨d % 9, Nat.mod_lt _ (by norm_num)⟩
+    (by have := hnotboth 3 Nat.prime_three; simp only; omega) k0
+    (ok_intro (by norm_num) (by simp only; rw [← e0]; omega)) k1
+    (ok_intro (by norm_num) (by simp only; rw [← e1]; omega)) k2
+    (ok_intro (by norm_num) (by simp only; rw [← e2]; omega)) k3
+    (ok_intro (by norm_num) (by simp only; rw [← e3]; omega)) k4
+    (ok_intro (by norm_num) (by simp only; rw [← e4]; omega))
+  have hCv : C = cv k0 * cv k1 * cv k2 * cv k3 * cv k4 := by
+    rw [hC]; simp [Finset.prod_range_succ, hk0, hk1, hk2, hk3, hk4]
+  have hcvle : ∀ k : Fin 4, cv k ≤ 6 := by decide
+  have hr100 : r < 100 := by
+    have : r ^ 2 ≤ 6 * 6 * 6 * 6 * 6 := by
+      rw [← hCr, hCv]
+      have := hcvle k0; have := hcvle k1; have := hcvle k2; have := hcvle k3; have := hcvle k4
+      gcongr <;> assumption
+    nlinarith
+  have hres := combine k0 k1 k2 k3 k4 h16 h9 ⟨⟨r, hr100⟩, by simp only; rw [← hCv, hCr]; ring⟩
+  simp only [List.cons.injEq, and_true] at hres
+  rcases hres with ⟨c0, c1, c2, c3, c4⟩ | ⟨c0, c1, c2, c3, c4⟩ | ⟨c0, c1, c2, c3, c4⟩
+  · rw [c0] at e0; rw [c1] at e1; rw [c2] at e2; rw [c3] at e3
+    exact caseA (n := n) (d := d) (y0 := b 0) (y1 := b 1) (y2 := b 2) (y3 := b 3) hd (by rw [e0]; ring) (by rw [e1]; ring) (by rw [e2]; ring) (by rw [e3]; ring)
+  · rw [c1] at e1; rw [c2] at e2; rw [c3] at e3; rw [c4] at e4
+    have z1 := congrArg (Nat.cast : ℕ → ℤ) e1; have z2 := congrArg (Nat.cast : ℕ → ℤ) e2
+    have z3 := congrArg (Nat.cast : ℕ → ℤ) e3; have z4 := congrArg (Nat.cast : ℕ → ℤ) e4
+    push_cast at z1 z2 z3 z4
+    exact caseB (u := b 1) (v := b 2) (w := b 3) (s := b 4) (by exact_mod_cast (hb 1).ne')
+      (by exact_mod_cast hb 4) (by positivity) (by linarith) (by linarith)
+  · rw [c0] at e0; rw [c1] at e1; rw [c2] at e2; rw [c3] at e3
+    have z0 := congrArg (Nat.cast : ℕ → ℤ) e0; have z1 := congrArg (Nat.cast : ℕ → ℤ) e1
+    have z2 := congrArg (Nat.cast : ℕ → ℤ) e2; have z3 := congrArg (Nat.cast : ℕ → ℤ) e3
+    push_cast at z0 z1 z2 z3
+    exact caseB (u := b 3) (v := b 2) (w := b 1) (s := b 0) (by exact_mod_cast (hb 3).ne')
+      (by exact_mod_cast hb 0) (by positivity) (by linarith) (by linarith)
+
 end OMA672H1
