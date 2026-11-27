@@ -45,4 +45,45 @@ lemma φ_isUnit : IsUnit φ := ⟨⟨φ, φ - 1, φ_mul, by rw [mul_comm]; exact
 /-- `√5 = 2φ - 1`. -/
 lemma sqrt5_sq : (2 * φ - 1) ^ 2 = 5 := by linear_combination 4 * φ_sq
 
+/-- Every element of `𝓞 K5` has integer coordinates in `1, ζ, ζ², ζ³`. -/
+lemma exists_coord (x : 𝓞 K5) : ∃ a b c e : ℤ, x = a + b * ζ + c * ζ ^ 2 + e * ζ ^ 3 := by
+  obtain ⟨f, rfl⟩ := hζ5.integralPowerBasis.exists_eq_aeval' x
+  rw [IsPrimitiveRoot.integralPowerBasis_gen]
+  induction f using Polynomial.induction_on' with
+  | add p q hp hq =>
+    obtain ⟨a, b, c, e, h1⟩ := hp
+    obtain ⟨a', b', c', e', h2⟩ := hq
+    exact ⟨a + a', b + b', c + c', e + e', by rw [map_add, h1, h2]; push_cast; ring⟩
+  | monomial n r =>
+    rw [Polynomial.aeval_monomial]
+    induction n with
+    | zero => exact ⟨r, 0, 0, 0, by simp⟩
+    | succ n ih =>
+      obtain ⟨a, b, c, e, h⟩ := ih
+      refine ⟨-e, a - e, b - e, c - e, ?_⟩
+      rw [pow_succ, ← mul_assoc, h]
+      push_cast
+      linear_combination (e : 𝓞 K5) * cyc
+
+/-- Coordinates are unique. -/
+lemma coord_zero {a b c e : ℤ} (h : (a : 𝓞 K5) + b * ζ + c * ζ ^ 2 + e * ζ ^ 3 = 0) :
+    a = 0 ∧ b = 0 ∧ c = 0 ∧ e = 0 := by
+  have hdim : hζ5.integralPowerBasis.dim = 4 := by
+    rw [IsPrimitiveRoot.integralPowerBasis_dim, Nat.totient_prime Nat.prime_five]
+  let B := hζ5.integralPowerBasis.basis.reindex (finCongr hdim)
+  have hB : ∀ i : Fin 4, B i = ζ ^ (i : ℕ) := by
+    intro i
+    simp [B, Module.Basis.reindex_apply, PowerBasis.coe_basis, IsPrimitiveRoot.integralPowerBasis_gen]
+  have key := (Fintype.linearIndependent_iff.mp B.linearIndependent) ![a, b, c, e] (by
+    simp [Fin.sum_univ_four, hB, Matrix.vecHead, Matrix.vecTail, zsmul_eq_mul]
+    linear_combination h)
+  exact ⟨key 0, key 1, key 2, key 3⟩
+
+lemma coord_eq {a b c e a' b' c' e' : ℤ}
+    (h : (a : 𝓞 K5) + b * ζ + c * ζ ^ 2 + e * ζ ^ 3 = a' + b' * ζ + c' * ζ ^ 2 + e' * ζ ^ 3) :
+    a = a' ∧ b = b' ∧ c = c' ∧ e = e' := by
+  have := coord_zero (a := a - a') (b := b - b') (c := c - c') (e := e - e')
+    (by push_cast; linear_combination h)
+  omega
+
 end OMA672Z5
