@@ -36,3 +36,11 @@ Then eps is congruent to a rational integer mod a high power of (1-a), so by KUM
 giving the same equation with mu - 1; mu = 1 is impossible by valuation count.
 Needed: Kummer's lemma for l = 5 (unit = rational integer mod lambda^5 => 5th power): finite check on
 zeta^k phi^m, using the unit classification of step 5.
+
+## Vandiver 1931 (PNAS 17, 661-673), read 2026-11-27
+Pages 664-665: for the equation theta^l + omega^l + delta gamma^l = 0 over Q(zeta + zeta^-1), from
+(theta + omega zeta^a)/(1 +- zeta^a) = eta_a sigma_a^l and power characters {E_n / P} = 1 (n = 1..(l-3)/2),
+"by taking the known expressions for power characters of units ... after some transformations" one gets
+sigma_1 = sigma_-1 (mod lambda^(l-1)). That is the congruence Denes cites as (18). The derivation itself is
+deferred to Vandiver, Trans. AMS 31 (1929) 613-642, p. 633 (footnote 4a), not yet obtained.
+For l = 5 there is a single unit E_1 (rank 1); the congruence may be checkable directly for this case.
