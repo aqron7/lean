@@ -479,6 +479,91 @@ lemma three_sub_pow (r : ℕ) : ∃ Q : 𝓞 K5,
       push_cast
       ring
 
+lemma lam_ne_zero : lam ≠ 0 := by
+  intro h
+  have := five_eq
+  rw [h] at this
+  norm_num at this
+
+lemma lam_pow_dvd_of_five_dvd {m : ℤ} (h : (5 : ℤ) ∣ m) {j : ℕ} (hj : j ≤ 4) :
+    lam ^ j ∣ (m : 𝓞 K5) := by
+  obtain ⟨t, rfl⟩ := h
+  push_cast
+  exact dvd_mul_of_dvd_left (dvd_trans (pow_dvd_pow lam hj) lam_pow_four_dvd_five) _
+
+lemma five_dvd_of_lam_dvd_nat {m : ℕ} (h : lam ∣ (m : 𝓞 K5)) : 5 ∣ m := by
+  have : (5 : ℤ) ∣ (m : ℤ) := lam_dvd_int (by exact_mod_cast h)
+  exact_mod_cast this
+
+lemma v5_congr : lam ∣ v5 - 4 := ⟨-(3 + 2 * ζ + ζ ^ 2), by ring⟩
+
+/-- Cancel one factor of `λ`. -/
+lemma lam_cancel {j : ℕ} {X : 𝓞 K5} (h : lam ^ (j + 1) ∣ lam * X) : lam ^ j ∣ X := by
+  obtain ⟨t, ht⟩ := h
+  exact ⟨t, mul_left_cancel₀ lam_ne_zero (by rw [ht]; ring)⟩
+
+/-- Core of Kummer's lemma for `l = 5`. -/
+theorem kummer_core {k r : ℕ} {n : ℤ} (h : lam ^ 3 ∣ ζ ^ k * φ ^ r - n) : 5 ∣ k ∧ 5 ∣ r := by
+  obtain ⟨P, hP⟩ := one_sub_pow k
+  obtain ⟨Q, hQ⟩ := three_sub_pow r
+  set C : ℕ := k * (k - 1) / 2 with hCdef
+  set A : 𝓞 K5 := ((3 ^ r - n : ℤ) : 𝓞 K5) with hA
+  set Y : 𝓞 K5 := (C : 𝓞 K5) * 3 ^ r - (r : 𝓞 K5) * 3 ^ (r - 1) * v5 with hY
+  set X : 𝓞 K5 := -(k : 𝓞 K5) * 3 ^ r + Y * lam with hX
+  set R : 𝓞 K5 := P * (3 ^ r - (r : 𝓞 K5) * 3 ^ (r - 1) * v5 * lam ^ 2 + lam ^ 3 * Q)
+        + (1 - (k : 𝓞 K5) * lam + (C : 𝓞 K5) * lam ^ 2) * Q
+        + (k : 𝓞 K5) * (r : 𝓞 K5) * 3 ^ (r - 1) * v5
+        - (C : 𝓞 K5) * (r : 𝓞 K5) * 3 ^ (r - 1) * v5 * lam with hR
+  have hexp : ζ ^ k * φ ^ r - n = A + lam * X + lam ^ 3 * R := by
+    rw [hA, hX, hY, hR, ζ_eq, φ_eq_three, hP, hQ]; push_cast; ring
+  rw [hexp] at h
+  have hAX : lam ^ 3 ∣ A + lam * X := by
+    have := dvd_sub h (dvd_mul_right (lam ^ 3) R); convert this using 1; ring
+  -- 5 ∣ 3^r - n
+  have hA1 : lam ∣ A := by
+    have h1 := dvd_trans (dvd_pow_self lam (by norm_num)) hAX
+    have := dvd_sub h1 (dvd_mul_right lam X); convert this using 1; ring
+  have hA3 : lam ^ 3 ∣ A := lam_pow_dvd_of_five_dvd (lam_dvd_int hA1) (by norm_num)
+  have hX2 : lam ^ 2 ∣ X := lam_cancel (by have := dvd_sub hAX hA3; convert this using 1; ring)
+  -- 5 ∣ k
+  have hk : 5 ∣ k := by
+    have hkl : lam ∣ ((k * 3 ^ r : ℕ) : 𝓞 K5) := by
+      have h' := dvd_trans (dvd_pow_self lam (by norm_num)) hX2
+      have := dvd_sub (dvd_mul_left lam Y) h'
+      push_cast; convert this using 1; rw [hX]; ring
+    exact Nat.Coprime.dvd_of_dvd_mul_right (Nat.Coprime.pow_right r (by norm_num))
+      (five_dvd_of_lam_dvd_nat hkl)
+  -- 5 ∣ C
+  have hC : 5 ∣ C := by
+    have h2 : 2 * C = k * (k - 1) := by
+      rw [hCdef]; exact Nat.two_mul_div_two_of_even (Nat.even_mul_pred_self k)
+    have : 5 ∣ 2 * C := by rw [h2]; exact Dvd.dvd.mul_right hk _
+    exact Nat.Coprime.dvd_of_dvd_mul_left (by norm_num) this
+  refine ⟨hk, ?_⟩
+  have hk5 : lam ^ 2 ∣ (k : 𝓞 K5) * 3 ^ r := by
+    have := lam_pow_dvd_of_five_dvd (m := ((k * 3 ^ r : ℕ) : ℤ))
+      (by exact_mod_cast Dvd.dvd.mul_right hk _) (j := 2) (by norm_num)
+    push_cast at this; exact this
+  have hY1 : lam ∣ Y := by
+    have h2 := dvd_add hX2 hk5
+    have h3 : lam ^ (1 + 1) ∣ lam * Y := by
+      rw [show lam * Y = X + (k : 𝓞 K5) * 3 ^ r by rw [hX]; ring]; simpa using h2
+    simpa using lam_cancel h3
+  have hCl : lam ∣ (C : 𝓞 K5) * 3 ^ r := by
+    have := lam_pow_dvd_of_five_dvd (m := ((C * 3 ^ r : ℕ) : ℤ))
+      (by exact_mod_cast Dvd.dvd.mul_right hC _) (j := 1) (by norm_num)
+    push_cast at this; simpa using this
+  have hrv : lam ∣ (r : 𝓞 K5) * 3 ^ (r - 1) * v5 := by
+    have := dvd_sub hCl hY1; convert this using 1; rw [hY]; ring
+  have hr4 : lam ∣ ((4 * (r * 3 ^ (r - 1)) : ℕ) : 𝓞 K5) := by
+    have e : ((4 * (r * 3 ^ (r - 1)) : ℕ) : 𝓞 K5)
+        = (r : 𝓞 K5) * 3 ^ (r - 1) * v5 - (r : 𝓞 K5) * 3 ^ (r - 1) * (v5 - 4) := by push_cast; ring
+    rw [e]
+    exact dvd_sub hrv (dvd_mul_of_dvd_right v5_congr _)
+  have h5' : 5 ∣ r * 3 ^ (r - 1) :=
+    Nat.Coprime.dvd_of_dvd_mul_left (by norm_num) (five_dvd_of_lam_dvd_nat hr4)
+  exact Nat.Coprime.dvd_of_dvd_mul_right (Nat.Coprime.pow_right _ (by norm_num)) h5'
+
 end Kummer
 
 end OMA672Z5
