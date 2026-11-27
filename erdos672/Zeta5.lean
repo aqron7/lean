@@ -216,4 +216,78 @@ lemma real_unit_norm {a c a' c' : ℤ} (h : ((a : 𝓞 K5) + c * φ) * (a' + c' 
 
 end RealUnits
 
+section UnitDecomp
+
+open NumberField.IsCMField
+
+lemma σ_lam_dvd (x : 𝓞 K5) (h : lam ∣ x) : lam ∣ σ x := by
+  obtain ⟨t, rfl⟩ := h
+  rw [map_mul]
+  apply dvd_mul_of_dvd_left
+  have : σ lam = lam * (1 + ζ + ζ ^ 2 + ζ ^ 3) := by
+    simp only [lam, map_sub, map_one, σ_ζ]; ring
+  rw [this]; exact dvd_mul_right _ _
+
+lemma coe_unitsComplexConj (u : (𝓞 K5)ˣ) : ((unitsComplexConj K5 u : (𝓞 K5)ˣ) : 𝓞 K5) = σ u := by
+  apply RingOfIntegers.ext; rfl
+
+/-- Every unit is `ζ^k` times a real element. -/
+lemma unit_decomp (u : (𝓞 K5)ˣ) : ∃ k : ℕ, ∃ w : 𝓞 K5, (u : 𝓞 K5) = ζ ^ k * w ∧ σ w = w := by
+  set t := unitsMulComplexConjInv K5 u with htdef
+  have ht : ((t : (𝓞 K5)ˣ) : 𝓞 K5) * σ u = u := by
+    rw [htdef, unitsMulComplexConjInv_apply, Units.val_mul, ← coe_unitsComplexConj, mul_assoc,
+      ← Units.val_mul, inv_mul_cancel, Units.val_one, mul_one]
+  have hfin : IsOfFinOrder ((((t : (𝓞 K5)ˣ) : 𝓞 K5) : K5)) := by
+    have h1 : IsOfFinOrder (t : (𝓞 K5)ˣ) := (CommGroup.mem_torsion _).mp t.2
+    exact MonoidHom.isOfFinOrder ((algebraMap (𝓞 K5) K5 : 𝓞 K5 →* K5).comp (Units.coeHom (𝓞 K5))) h1
+  obtain ⟨r, -, hr⟩ := IsPrimitiveRoot.exists_pow_or_neg_mul_pow_of_isOfFinOrder
+    (by decide : Odd 5) hζ5 hfin
+  have hz : ((ζ : 𝓞 K5) : K5) = IsCyclotomicExtension.zeta 5 ℚ K5 := rfl
+  have hr' : ((t : (𝓞 K5)ˣ) : 𝓞 K5) = ζ ^ r ∨ ((t : (𝓞 K5)ˣ) : 𝓞 K5) = -ζ ^ r := by
+    rcases hr with h | h
+    · left; apply RingOfIntegers.ext; exact h
+    · right; apply RingOfIntegers.ext; simp only [map_neg, map_pow]; exact h
+  have h5 : ∀ n : ℕ, ζ ^ (5 * n) = 1 := fun n => by rw [pow_mul, ζ_pow_five, one_pow]
+  refine ⟨3 * r, ζ ^ (4 * (3 * r)) * u, ?_, ?_⟩
+  · rw [← mul_assoc, ← pow_add, show 3 * r + 4 * (3 * r) = 5 * (3 * r) by ring, h5, one_mul]
+  · have hσw : σ (ζ ^ (4 * (3 * r)) * u) = ζ ^ (48 * r) * σ u := by
+      rw [map_mul, map_pow, σ_ζ, ← pow_mul]; ring_nf
+    rw [hσw]
+    rcases hr' with h | h
+    · conv_rhs => rw [← ht, h]
+      rw [show 48 * r = 4 * (3 * r) + r + 5 * (7 * r) by ring, pow_add, h5, mul_one, pow_add]
+      ring
+    · exfalso
+      -- σ w = -w for w = ζ^(12r) u
+      set w := ζ ^ (4 * (3 * r)) * u with hw
+      have hσ : σ w = -w := by
+        rw [hw, hσw]
+        conv_rhs => rw [← ht, h]
+        rw [show 48 * r = 4 * (3 * r) + r + 5 * (7 * r) by ring, pow_add, h5, mul_one, pow_add]
+        ring
+      have hwu : IsUnit w := by
+        rw [hw]; exact (IsUnit.pow _ (hζ5.toInteger_isPrimitiveRoot.isUnit (by norm_num))).mul u.isUnit
+      obtain ⟨c, hc⟩ := exists_int_congr w
+      have h2 : lam ∣ σ (w - c) := σ_lam_dvd _ hc
+      rw [map_sub, map_intCast, hσ] at h2
+      have h3 : lam ∣ ((-2 * c : ℤ) : 𝓞 K5) := by
+        have := dvd_add hc h2; push_cast; convert this using 1; ring
+      have h4 := lam_dvd_int h3
+      have h5c : (5 : ℤ) ∣ c := by
+        have hp : Prime (5 : ℤ) := Int.prime_iff_natAbs_prime.mpr (by norm_num)
+        rcases hp.dvd_or_dvd (show (5 : ℤ) ∣ (-2) * c from h4) with h | h
+        · norm_num at h
+        · exact h
+      have hlc : lam ∣ (c : 𝓞 K5) := by
+        obtain ⟨k, hk⟩ := h5c
+        rw [hk]; push_cast
+        exact dvd_mul_of_dvd_left (dvd_trans (dvd_pow_self lam (by norm_num)) lam_pow_four_dvd_five) _
+      have hlw : lam ∣ w := by have := dvd_add hc hlc; simpa using this
+      apply lam_not_dvd_one
+      obtain ⟨v, hv⟩ := hwu
+      rw [← hv] at hlw
+      exact dvd_trans hlw ⟨↑v⁻¹, by simp⟩
+
+end UnitDecomp
+
 end OMA672Z5
