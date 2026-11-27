@@ -266,4 +266,91 @@ theorem five_factor {x y W : 𝓞 K5} {E : (𝓞 K5)ˣ} {j : ℕ} (hW0 : W ≠ 0
 
 end Factors
 
+section Back
+
+lemma lam_dvd_σ_of {n : ℕ} {x : 𝓞 K5} (h : lam ^ n ∣ x) : lam ^ n ∣ σ x := by
+  obtain ⟨t, rfl⟩ := h
+  have hσ : σ lam = lam * (-ζ ^ 4) := by
+    rw [map_sub, map_one, σ_ζ]; linear_combination (-1 : 𝓞 K5) * ζ_pow_five
+  rw [map_mul, map_pow, hσ, mul_pow, mul_assoc]
+  exact dvd_mul_right _ _
+
+lemma lam5_conj (t : 𝓞 K5) : lam ^ 5 ∣ t ^ 5 - (σ t) ^ 5 := by
+  obtain ⟨c, hc⟩ := exists_int_congr t
+  have h1 := pow_five_congr hc
+  have h2 : lam ∣ σ t - c := by
+    have := lam_dvd_σ_of (n := 1) (x := t - c) (by rw [pow_one]; exact hc)
+    rwa [pow_one, show σ (t - (c : 𝓞 K5)) = σ t - c by rw [map_sub, map_intCast]] at this
+  have h3 := pow_five_congr h2
+  have := dvd_sub h1 h3
+  convert this using 1; ring
+
+lemma lam2_conj {x : 𝓞 K5} {c : ℤ} (h : lam ^ 2 ∣ x - c) : lam ^ 2 ∣ σ x - c := by
+  have := lam_dvd_σ_of h; rwa [map_sub, map_intCast] at this
+
+/-- The unit equation `v + w = 2` in `ℤ[φ]` with `v ≡ 1 (mod λ)`. -/
+lemma unit_eq_two {v : 𝓞 K5} (hv : σ v = v) (hvu : IsUnit v) (hwu : IsUnit (2 - v))
+    (hl : lam ∣ v - 1) : v = 1 := by
+  obtain ⟨a, b, hab⟩ := real_form hv
+  have hinv : ∀ x : 𝓞 K5, σ x = x → IsUnit x → ∃ a b a' b' : ℤ, x = a + b * φ ∧
+      ((a : 𝓞 K5) + b * φ) * (a' + b' * φ) = 1 := by
+    intro x hx hxu
+    obtain ⟨y, hy⟩ := hxu.exists_right_inv
+    have hyσ : σ y = y := by
+      have h1 := congrArg σ hy; rw [map_mul, hx, map_one] at h1
+      have : x * σ y = x * y := by rw [h1, hy]
+      exact mul_left_cancel₀ (hxu.ne_zero) this
+    obtain ⟨a, b, rfl⟩ := real_form hx
+    obtain ⟨a', b', rfl⟩ := real_form hyσ
+    exact ⟨a, b, a', b', rfl, hy⟩
+  obtain ⟨a1, b1, a1', b1', hx1, hn1⟩ := hinv v hv hvu
+  have hw : σ (2 - v) = 2 - v := by rw [map_sub, hv, map_ofNat]
+  obtain ⟨a2, b2, a2', b2', hx2, hn2⟩ := hinv (2 - v) hw hwu
+  have N1 := real_unit_norm hn1
+  have N2 := real_unit_norm hn2
+  have e1 := φcoord_eq (hab.symm.trans hx1)
+  have e2 := φcoord_eq (x := 2 - a) (y := -b) (by rw [← hx2, hab]; push_cast; ring)
+  obtain ⟨rfl, rfl⟩ := e1
+  obtain ⟨rfl, rfl⟩ := e2
+  -- `λ ∣ v - 1` gives `5 ∣ a - 1 + 3b`
+  have h5 : (5 : ℤ) ∣ a - 1 + 3 * b := by
+    apply lam_dvd_int
+    have h2 : lam ∣ φ - 3 := ⟨ζ ^ 4 * lam, by rw [phi_sub_three]; ring⟩
+    have := dvd_sub hl (dvd_mul_of_dvd_right h2 (b : 𝓞 K5))
+    rw [hab] at this; push_cast; convert this using 1; ring
+  have h1 : -1 ≤ a ^ 2 + a * b - b ^ 2 ∧ a ^ 2 + a * b - b ^ 2 ≤ 1 := by
+    rcases N1 with h | h <;> constructor <;> linarith
+  have h2 : -2 ≤ 4 - 4 * a - 2 * b ∧ 4 - 4 * a - 2 * b ≤ 2 := by
+    rcases N1 with h | h <;> rcases N2 with h' | h' <;> constructor <;> nlinarith
+  have ha : a ≤ 3 ∧ -2 ≤ a := by
+    constructor <;> nlinarith [sq_nonneg (a - 1), sq_nonneg (2 * a + b - 2)]
+  have key : a = 1 ∧ b = 0 := by
+    obtain ⟨ha1, ha2⟩ := ha
+    obtain ⟨h21, h22⟩ := h2
+    have hb1 : b ≤ 7 := by omega
+    have hb2 : -5 ≤ b := by omega
+    interval_cases a <;> interval_cases b <;> first | exact ⟨rfl, rfl⟩ | (exfalso; omega) |
+      (exfalso; rcases N1 with h | h <;> rcases N2 with h' | h' <;> norm_num at h h' <;> omega)
+  rw [hab, key.1, key.2]; simp
+
+/-- If `X + ζ Y = ζ³ u` with `X, Y, u` real then `X = Y`. -/
+lemma eq_of_unit_form {X Y u : 𝓞 K5} (hX : σ X = X) (hY : σ Y = Y) (hu : σ u = u)
+    (h : X + ζ * Y = ζ ^ 3 * u) : X = Y := by
+  have h4 : X + ζ ^ 4 * Y = ζ ^ 2 * u := by
+    have := congrArg σ h
+    rw [map_add, map_mul, hX, hY, σ_ζ, map_mul, σ_zeta_pow, hu] at this
+    rw [this, show ζ ^ (4 * 3) = ζ ^ 2 from ζ_pow_eq_of_mod (by norm_num)]
+  have hne : ζ - ζ ^ 4 ≠ 0 := by
+    intro h0
+    have : ζ ^ 1 = ζ ^ 4 := by rw [pow_one]; exact sub_eq_zero.mp h0
+    have h3 : ζ ^ 3 = 1 := by
+      apply mul_left_cancel₀ ζ_ne_zero
+      linear_combination (-1 : 𝓞 K5) * this
+    exact ζ_prim.pow_ne_one_of_pos_of_lt (by norm_num) (by norm_num) h3
+  apply sub_eq_zero.mp
+  apply mul_left_cancel₀ hne
+  linear_combination (-ζ ^ 4 - 1) * h + (1 + ζ) * h4 - (u * ζ ^ 2) * ζ_pow_five
+
+end Back
+
 end OMA672Z5
