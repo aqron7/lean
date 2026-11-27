@@ -774,4 +774,186 @@ theorem zeta_not_fifth_mod_two {x y : 𝓞 K5} (h : (2 : 𝓞 K5) ∣ ζ * y ^ 5
 
 end Two
 
+section CaseB
+
+open NumberField.IsCMField
+
+lemma prod_five (x y : 𝓞 K5) :
+    (x + y) * (x + ζ * y) * (x + ζ ^ 2 * y) * (x + ζ ^ 3 * y) * (x + ζ ^ 4 * y) = x ^ 5 + y ^ 5 := by
+  linear_combination (x ^ 4 * y - y ^ 5 + ζ ^ 6 * (x * y ^ 4 + y ^ 5) + ζ ^ 5 * (x ^ 2 * y ^ 3 - y ^ 5)
+    + ζ ^ 3 * (x ^ 3 * y ^ 2 + x ^ 2 * y ^ 3) + ζ * (x ^ 3 * y ^ 2 + y ^ 5)) * cyc
+
+lemma prod_one_sub : (1 - ζ) * (1 - ζ ^ 2) * (1 - ζ ^ 3) * (1 - ζ ^ 4) = 5 := by
+  linear_combination (ζ ^ 6 - 2 * ζ ^ 5 + ζ ^ 3 + 3 * ζ - 4) * cyc
+
+lemma hasRed_ζ4 : HasRed (ζ ^ 4) (1, 1, 1, 1) :=
+  ⟨-1, -1, -1, -1, by push_cast; linear_combination cyc, by decide⟩
+
+set_option synthInstance.maxHeartbeats 2000000 in
+set_option synthInstance.maxSize 2000 in
+set_option maxRecDepth 100000 in
+lemma F16_zeta4_not_fifth : ∀ x y : F16, mul16 (1, 1, 1, 1) (pow5_16 y) + pow5_16 x = 0 → y = 0 := by
+  decide
+
+theorem zeta4_not_fifth_mod_two {x y : 𝓞 K5} (h : (2 : 𝓞 K5) ∣ ζ ^ 4 * y ^ 5 + x ^ 5) :
+    (2 : 𝓞 K5) ∣ y := by
+  obtain ⟨v, hv⟩ := hasRed_exists x
+  obtain ⟨w, hw⟩ := hasRed_exists y
+  have hred := (hasRed_ζ4.mul hw.pow5).add hv.pow5
+  rw [hred.two_dvd] at h
+  exact hw.two_dvd.mpr (F16_zeta4_not_fifth v w h)
+
+/-- The differences `ζ^i - ζ` (`i = 0, 2, 3, 4`) divide `5`. -/
+lemma diff_dvd_five (i : ℕ) (hi : i = 0 ∨ i = 2 ∨ i = 3 ∨ i = 4) : (ζ ^ i - ζ) ∣ (5 : 𝓞 K5) := by
+  rw [← prod_one_sub]
+  rcases hi with rfl | rfl | rfl | rfl
+  · exact ⟨(1 - ζ ^ 2) * (1 - ζ ^ 3) * (1 - ζ ^ 4), by ring⟩
+  · exact ⟨-(ζ ^ 4 * (1 - ζ ^ 2) * (1 - ζ ^ 3) * (1 - ζ ^ 4)), by
+      linear_combination (-((1 - ζ) * (1 - ζ ^ 2) * (1 - ζ ^ 3) * (1 - ζ ^ 4))) * ζ_pow_five⟩
+  · exact ⟨-(ζ ^ 4 * (1 - ζ) * (1 - ζ ^ 3) * (1 - ζ ^ 4)), by
+      linear_combination (-((1 - ζ) * (1 - ζ ^ 2) * (1 - ζ ^ 3) * (1 - ζ ^ 4))) * ζ_pow_five⟩
+  · exact ⟨-(ζ ^ 4 * (1 - ζ) * (1 - ζ ^ 2) * (1 - ζ ^ 4)), by
+      linear_combination (-((1 - ζ) * (1 - ζ ^ 2) * (1 - ζ ^ 3) * (1 - ζ ^ 4))) * ζ_pow_five⟩
+
+/-- Coprimality of `x + ζ y` with the other factors, when `5 ∣ y` and `x, y` coprime. -/
+lemma coprime_F1 {x y : ℤ} (hxy : IsCoprime x y) (hx5 : IsCoprime x 5) (hy5 : (5 : ℤ) ∣ y)
+    (i : ℕ) (hi : i = 0 ∨ i = 2 ∨ i = 3 ∨ i = 4) :
+    IsCoprime ((x : 𝓞 K5) + ζ * y) ((x : 𝓞 K5) + ζ ^ i * y) := by
+  obtain ⟨y', rfl⟩ := hy5
+  obtain ⟨a, b, hab⟩ := hx5
+  have h5 : IsCoprime ((x : 𝓞 K5) + ζ * ((5 * y' : ℤ) : 𝓞 K5)) 5 := by
+    refine ⟨a, b - a * ζ * y', ?_⟩
+    have : ((a * x + b * 5 : ℤ) : 𝓞 K5) = 1 := by rw [hab]; simp
+    push_cast at this ⊢; linear_combination this
+  have hd := h5.of_isCoprime_of_dvd_right (diff_dvd_five i hi)
+  obtain ⟨p, q, hpq⟩ := hxy
+  obtain ⟨r, t, hrt⟩ := hd
+  set F1 := (x : 𝓞 K5) + ζ * ((5 * y' : ℤ) : 𝓞 K5)
+  set Fi := (x : 𝓞 K5) + ζ ^ i * ((5 * y' : ℤ) : 𝓞 K5)
+  have hpq' : (p : 𝓞 K5) * x + q * ((5 * y' : ℤ) : 𝓞 K5) = 1 := by exact_mod_cast hpq
+  refine ⟨r + t * p * ζ ^ i - t * q, t * (q - p * ζ), ?_⟩
+  rw [← hrt]
+  have e : ζ ^ i - ζ = (p : 𝓞 K5) * (ζ ^ i * F1 - ζ * Fi) + q * (Fi - F1) := by
+    simp only [F1, Fi]; linear_combination (-(ζ ^ i - ζ)) * hpq'
+  rw [e]; ring
+
+/-- **Case b** of Dénes for `l = 5`: no solution of `x⁵ + y⁵ = 2^j z⁵` (`j ≥ 1`) with `x, y`
+coprime and `5 ∣ y`. -/
+theorem case_b {x y z : ℤ} {j : ℕ} (hj : 1 ≤ j) (h : x ^ 5 + y ^ 5 = 2 ^ j * z ^ 5)
+    (hxy : IsCoprime x y) (hy5 : (5 : ℤ) ∣ y) : False := by
+  -- parity: x and y are odd
+  have hev : Even (x ^ 5 + y ^ 5) := by
+    rw [h]; exact ⟨2 ^ (j - 1) * z ^ 5, by
+      obtain ⟨j', rfl⟩ : ∃ j', j = j' + 1 := ⟨j - 1, by omega⟩
+      simp only [Nat.add_sub_cancel]; ring⟩
+  have hxodd : Odd x := by
+    rcases Int.even_or_odd x with hx | hx
+    · exfalso
+      have hy : Even y := by
+        rw [Int.even_add, Int.even_pow' (by norm_num), Int.even_pow' (by norm_num)] at hev
+        exact hev.mp hx
+      have := hxy.isUnit_of_dvd' hx.two_dvd hy.two_dvd
+      rcases Int.isUnit_iff.mp this with h | h <;> norm_num at h
+    · exact hx
+  have hyodd : Odd y := by
+    rw [Int.even_add, Int.even_pow' (by norm_num), Int.even_pow' (by norm_num)] at hev
+    rcases Int.even_or_odd y with hy | hy
+    · exact absurd (hev.mpr hy) (Int.not_even_iff_odd.mpr hxodd)
+    · exact hy
+  have hx5 : IsCoprime x 5 := by
+    have hp : Prime (5 : ℤ) := Int.prime_iff_natAbs_prime.mpr (by norm_num)
+    refine ((Prime.coprime_iff_not_dvd hp).mpr ?_).symm
+    intro h5x
+    exact hp.not_isUnit (hxy.isUnit_of_dvd' h5x hy5)
+  set F1 : 𝓞 K5 := (x : 𝓞 K5) + ζ * y with hF1
+  set R : 𝓞 K5 := ((x : 𝓞 K5) + y) * ((x : 𝓞 K5) + ζ ^ 2 * y) * ((x : 𝓞 K5) + ζ ^ 3 * y)
+    * ((x : 𝓞 K5) + ζ ^ 4 * y) with hR
+  have hFR : F1 * R = 2 ^ j * (z : 𝓞 K5) ^ 5 := by
+    have := prod_five (x : 𝓞 K5) (y : 𝓞 K5)
+    have h' : ((x ^ 5 + y ^ 5 : ℤ) : 𝓞 K5) = ((2 ^ j * z ^ 5 : ℤ) : 𝓞 K5) := by rw [h]
+    push_cast at h'
+    rw [hF1, hR, ← h', ← this]; ring
+  have hcopR : IsCoprime F1 R := by
+    have c0 := coprime_F1 hxy hx5 hy5 0 (by norm_num)
+    have c2 := coprime_F1 hxy hx5 hy5 2 (by norm_num)
+    have c3 := coprime_F1 hxy hx5 hy5 3 (by norm_num)
+    have c4 := coprime_F1 hxy hx5 hy5 4 (by norm_num)
+    simp only [pow_zero, one_mul] at c0
+    exact ((c0.mul_right c2).mul_right c3).mul_right c4
+  -- 2 does not divide F1
+  have h2F1 : ¬ (2 : 𝓞 K5) ∣ F1 := by
+    intro h2
+    have : (2 : 𝓞 K5) ∣ (x : 𝓞 K5) + y * ζ + (0 : ℤ) * ζ ^ 2 + (0 : ℤ) * ζ ^ 3 := by
+      convert h2 using 1; rw [hF1]; push_cast; ring
+    obtain ⟨h2x, -⟩ := two_dvd_coord this
+    exact (Int.not_even_iff_odd.mpr hxodd) (even_iff_two_dvd.mpr h2x)
+  have hcop2 : IsCoprime ((2 : 𝓞 K5) ^ j) F1 :=
+    ((Prime.coprime_iff_not_dvd two_prime).mpr h2F1).pow_left
+  have h2R : (2 : 𝓞 K5) ^ j ∣ R := hcop2.dvd_of_dvd_mul_left ⟨(z : 𝓞 K5) ^ 5, hFR⟩
+  obtain ⟨R', hR'⟩ := h2R
+  have hFR' : F1 * R' = (z : 𝓞 K5) ^ 5 := by
+    apply mul_left_cancel₀ (pow_ne_zero j two_ne_zero)
+    rw [← hFR, hR']; ring
+  have hcopR' : IsCoprime F1 R' := hcopR.of_isCoprime_of_dvd_right ⟨_, by rw [hR', mul_comm]⟩
+  obtain ⟨α, u, hαu⟩ := exists_associated_pow_of_mul_eq_pow' hcopR' hFR'
+  -- F1 ≡ x (mod λ⁴)
+  obtain ⟨y', rfl⟩ := hy5
+  have hF1x : lam ^ 4 ∣ F1 - x := by
+    rw [hF1]; push_cast
+    exact ⟨u5 * ζ * y', by linear_combination (-(ζ * y')) * five_eq⟩
+  -- λ does not divide α
+  have hlα : ¬ lam ∣ α := by
+    intro hl
+    have h1 : lam ∣ F1 := by rw [← hαu]; exact dvd_mul_of_dvd_left (dvd_pow hl (by norm_num)) _
+    have h2 : lam ∣ (x : 𝓞 K5) := by
+      have := dvd_sub h1 (dvd_trans (dvd_pow_self lam (by norm_num)) hF1x); simpa using this
+    have hp : Prime (5 : ℤ) := Int.prime_iff_natAbs_prime.mpr (by norm_num)
+    exact hp.not_isUnit (hx5.isUnit_of_dvd' (lam_dvd_int h2) (dvd_refl 5))
+  obtain ⟨c0, hc0⟩ := exists_int_congr α
+  have hc05 := pow_five_congr hc0
+  have hc0_cop : IsCoprime (c0 ^ 5) 125 := by
+    have hp : Prime (5 : ℤ) := Int.prime_iff_natAbs_prime.mpr (by norm_num)
+    have h5c : ¬ (5 : ℤ) ∣ c0 := by
+      intro h5
+      apply hlα
+      have hlc : lam ∣ (c0 : 𝓞 K5) := by simpa using lam_pow_dvd_of_five_dvd h5 (j := 1) (by norm_num)
+      have := dvd_add hc0 hlc; simpa using this
+    have : IsCoprime c0 5 := ((Prime.coprime_iff_not_dvd hp).mpr h5c).symm
+    have e : (125 : ℤ) = 5 ^ 3 := by norm_num
+    rw [e]; exact this.pow
+  obtain ⟨a, b, hab⟩ := hc0_cop
+  -- the unit u is congruent to an integer mod λ³
+  have hu : lam ^ 3 ∣ ((u : 𝓞 K5)) - ((a * x : ℤ) : 𝓞 K5) := by
+    have e1 : lam ^ 3 ∣ α ^ 5 * u - x := by
+      rw [hαu]; exact dvd_trans (pow_dvd_pow lam (by norm_num)) hF1x
+    have e2 : lam ^ 3 ∣ (α ^ 5 - (c0 : 𝓞 K5) ^ 5) * u :=
+      dvd_mul_of_dvd_left (dvd_trans (pow_dvd_pow lam (by norm_num)) hc05) _
+    have e3 : lam ^ 3 ∣ (a : 𝓞 K5) * ((c0 : 𝓞 K5) ^ 5 * u - x) := by
+      apply dvd_mul_of_dvd_right; have := dvd_sub e1 e2; convert this using 1; ring
+    have e4 : lam ^ 3 ∣ (b : 𝓞 K5) * 125 * u := dvd_mul_of_dvd_left
+      (dvd_mul_of_dvd_right lam_pow_three_dvd_125 _) _
+    have hab' : (a : 𝓞 K5) * (c0 : 𝓞 K5) ^ 5 + (b : 𝓞 K5) * 125 = 1 := by exact_mod_cast hab
+    have := dvd_add e3 e4
+    convert this using 1; push_cast; linear_combination (-(u : 𝓞 K5)) * hab'
+  obtain ⟨η, hη⟩ := kummer_lemma u (a * x) hu
+  set β : 𝓞 K5 := α * η with hβ
+  have hFβ : F1 = β ^ 5 := by rw [← hαu, hη, hβ]; push_cast; ring
+  -- conjugate factor
+  have hσF : σ F1 = (x : 𝓞 K5) + ζ ^ 4 * ((5 * y' : ℤ) : 𝓞 K5) := by
+    rw [hF1]; simp only [map_add, map_mul, map_intCast, σ_ζ]
+  have hsum : ζ ^ 4 * F1 + σ F1 = (1 + ζ ^ 4) * ((x : 𝓞 K5) + ((5 * y' : ℤ) : 𝓞 K5)) := by
+    rw [hσF, hF1]; linear_combination ((5 * y' : ℤ) : 𝓞 K5) * ζ_pow_five
+  have h2sum : (2 : 𝓞 K5) ∣ ζ ^ 4 * β ^ 5 + (σ β) ^ 5 := by
+    rw [← map_pow, ← hFβ, hsum]
+    apply dvd_mul_of_dvd_right
+    have : Even (x + 5 * y') := hxodd.add_odd hyodd
+    obtain ⟨w, hw⟩ := this
+    have hw' := congrArg (fun t : ℤ => (t : 𝓞 K5)) hw
+    push_cast at hw'
+    exact ⟨(w : 𝓞 K5), by push_cast; linear_combination hw'⟩
+  have h2β := zeta4_not_fifth_mod_two h2sum
+  exact h2F1 (by rw [hFβ]; exact dvd_pow h2β (by norm_num))
+
+end CaseB
+
 end OMA672Z5
