@@ -644,4 +644,68 @@ theorem kummer_lemma (ε : (𝓞 K5)ˣ) (n : ℤ) (h : lam ^ 3 ∣ (ε : 𝓞 K5
 
 end Kummer
 
+section Two
+
+/-- Product in coordinates. -/
+lemma mul_coord (a b c e A B C E : ℤ) :
+    ((a : 𝓞 K5) + b * ζ + c * ζ ^ 2 + e * ζ ^ 3) * ((A : 𝓞 K5) + B * ζ + C * ζ ^ 2 + E * ζ ^ 3)
+    = ((A*a - B*e - C*c + C*e - E*b + E*c : ℤ) : 𝓞 K5)
+      + ((A*b + B*a - B*e - C*c - E*b + E*e : ℤ) : 𝓞 K5) * ζ
+      + ((A*c + B*b - B*e + C*a - C*c - E*b : ℤ) : 𝓞 K5) * ζ ^ 2
+      + ((A*e + B*c - B*e + C*b - C*c + E*a - E*b : ℤ) : 𝓞 K5) * ζ ^ 3 := by
+  push_cast
+  linear_combination ((B : 𝓞 K5)*e + C*c - C*e + E*b - E*c + E*e*ζ^2 + ζ*(C*e + E*c - E*e)) * cyc
+
+lemma two_dvd_coord {a b c e : ℤ} (h : (2 : 𝓞 K5) ∣ (a : 𝓞 K5) + b * ζ + c * ζ ^ 2 + e * ζ ^ 3) :
+    2 ∣ a ∧ 2 ∣ b ∧ 2 ∣ c ∧ 2 ∣ e := by
+  obtain ⟨w, hw⟩ := h
+  obtain ⟨a', b', c', e', rfl⟩ := exists_coord w
+  have := coord_eq (a := a) (b := b) (c := c) (e := e) (a' := 2 * a') (b' := 2 * b') (c' := 2 * c')
+    (e' := 2 * e') (by rw [hw]; push_cast; ring)
+  obtain ⟨h1, h2, h3, h4⟩ := this
+  exact ⟨⟨a', h1⟩, ⟨b', h2⟩, ⟨c', h3⟩, ⟨e', h4⟩⟩
+
+lemma two_dvd_of_coord {a b c e : ℤ} (h : 2 ∣ a ∧ 2 ∣ b ∧ 2 ∣ c ∧ 2 ∣ e) :
+    (2 : 𝓞 K5) ∣ (a : 𝓞 K5) + b * ζ + c * ζ ^ 2 + e * ζ ^ 3 := by
+  obtain ⟨⟨a', rfl⟩, ⟨b', rfl⟩, ⟨c', rfl⟩, ⟨e', rfl⟩⟩ := h
+  exact ⟨a' + b' * ζ + c' * ζ ^ 2 + e' * ζ ^ 3, by push_cast; ring⟩
+
+set_option synthInstance.maxHeartbeats 2000000 in
+set_option synthInstance.maxSize 2000 in
+set_option maxRecDepth 100000 in
+/-- `F₂[x]/(x⁴+x³+x²+x+1)` has no zero divisors. -/
+lemma F16_domain : ∀ a b c e A B C E : ZMod 2,
+    A*a - B*e - C*c + C*e - E*b + E*c = 0 → A*b + B*a - B*e - C*c - E*b + E*e = 0 →
+    A*c + B*b - B*e + C*a - C*c - E*b = 0 → A*e + B*c - B*e + C*b - C*c + E*a - E*b = 0 →
+    (a = 0 ∧ b = 0 ∧ c = 0 ∧ e = 0) ∨ (A = 0 ∧ B = 0 ∧ C = 0 ∧ E = 0) := by decide
+
+lemma even_iff_cast {n : ℤ} : 2 ∣ n ↔ (n : ZMod 2) = 0 :=
+  (ZMod.intCast_zmod_eq_zero_iff_dvd n 2).symm
+
+/-- `2` is prime in `ℤ[ζ₅]` (it is inert, with residue field `F₁₆`). -/
+theorem two_prime : Prime (2 : 𝓞 K5) := by
+  refine ⟨two_ne_zero, ?_, ?_⟩
+  · intro hu
+    obtain ⟨v, hv⟩ := hu.exists_right_inv
+    obtain ⟨a, b, c, e, rfl⟩ := exists_coord v
+    have := coord_eq (a := 2 * a) (b := 2 * b) (c := 2 * c) (e := 2 * e) (a' := 1) (b' := 0)
+      (c' := 0) (e' := 0) (by push_cast; rw [← hv]; ring)
+    omega
+  · intro α β h
+    obtain ⟨a, b, c, e, rfl⟩ := exists_coord α
+    obtain ⟨A, B, C, E, rfl⟩ := exists_coord β
+    rw [mul_coord] at h
+    obtain ⟨h0, h1, h2, h3⟩ := two_dvd_coord h
+    rw [even_iff_cast] at h0 h1 h2 h3
+    push_cast at h0 h1 h2 h3
+    rcases F16_domain _ _ _ _ _ _ _ _ h0 h1 h2 h3 with ⟨ha, hb, hc, he⟩ | ⟨ha, hb, hc, he⟩
+    · left
+      apply two_dvd_of_coord
+      simp only [even_iff_cast]; exact ⟨ha, hb, hc, he⟩
+    · right
+      apply two_dvd_of_coord
+      simp only [even_iff_cast]; exact ⟨ha, hb, hc, he⟩
+
+end Two
+
 end OMA672Z5
