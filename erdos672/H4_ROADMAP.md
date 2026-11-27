@@ -44,3 +44,12 @@ Pages 664-665: for the equation theta^l + omega^l + delta gamma^l = 0 over Q(zet
 sigma_1 = sigma_-1 (mod lambda^(l-1)). That is the congruence Denes cites as (18). The derivation itself is
 deferred to Vandiver, Trans. AMS 31 (1929) 613-642, p. 633 (footnote 4a), not yet obtained.
 For l = 5 there is a single unit E_1 (rank 1); the congruence may be checkable directly for this case.
+
+## Dirichlet 1825/1828 (Werke I, 21-46; archive.org werkehrsgaufvera01lejeuoft), read 2026-11-27
+Thm VIII: x^5 +- y^5 = 5^n A z^5 impossible (n != 0, 2; A not divisible by 2, 5, or any prime 10k+1).
+Thm IX: x^5 +- y^5 = A z^5 impossible for A (same restrictions) = 3,4,9,12,13,16,21,22 mod 25.
+A must be ODD in VIII/IX, so A = 2 and A = 8 are NOT covered (consistent with Denes 1952 being the source
+for c = 2). Dirichlet's elementary route does not bypass case a.
+Status of case a (5 does not divide xyz): Denes Satz 1 needs Vandiver's rho_1 = rho_4 (mod lambda^4), derived
+from power characters of units = Kummer's explicit reciprocity formula. This is the remaining hard core.
+Note: the trivial solution x = y = z = 1 lies in case a, so case a cannot be settled by congruences alone.
