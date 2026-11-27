@@ -1030,4 +1030,70 @@ lemma normalize {x : 𝓞 K5} (hx : ¬ lam ∣ x) : ∃ k : ℕ, ∃ a : ℤ, la
 
 end CasePrereq
 
+section CaseC
+
+/-- `ζ^s - ζ^r = λ · (unit)` for `r < s < 5`. -/
+lemma diff_eq {r s : ℕ} (hrs : r < s) (hs : s < 5) : ∃ w : 𝓞 K5, IsUnit w ∧ ζ ^ s - ζ ^ r = lam * w := by
+  obtain ⟨w, hw, he⟩ := one_sub_pow_eq (s - r) (by omega)
+  refine ⟨-(ζ ^ r * w), (((hζ5.toInteger_isPrimitiveRoot.isUnit (by norm_num)).pow r).mul hw).neg, ?_⟩
+  have : ζ ^ s = ζ ^ r * ζ ^ (s - r) := by rw [← pow_add]; congr 1; omega
+  rw [this]; linear_combination (-(ζ ^ r)) * he
+
+/-- If two factors `u + ζ^r v`, `u + ζ^s v` are `λ X`, `λ Y`, then `X, Y` are coprime. -/
+lemma coprime_quot {u v X Y w : 𝓞 K5} {r s : ℕ} (hcop : IsCoprime u v)
+    (hX : u + ζ ^ r * v = lam * X) (hY : u + ζ ^ s * v = lam * Y)
+    (hw : ζ ^ s - ζ ^ r = lam * w) (hwu : IsUnit w) : IsCoprime X Y := by
+  obtain ⟨p, q, hpq⟩ := hcop
+  have key : w = p * (ζ ^ s * X - ζ ^ r * Y) + q * (Y - X) := by
+    apply mul_left_cancel₀ lam_ne_zero
+    rw [← hw]
+    linear_combination (-(ζ ^ s - ζ ^ r)) * hpq + (p * ζ ^ s - q) * hX + (q - p * ζ ^ r) * hY
+  obtain ⟨wu, rfl⟩ := hwu
+  refine ⟨↑wu⁻¹ * (p * ζ ^ s - q), ↑wu⁻¹ * (q - p * ζ ^ r), ?_⟩
+  have : (↑wu⁻¹ : 𝓞 K5) * wu = 1 := by simp
+  rw [← this, key]; ring
+
+lemma zmod5_fermat : ∀ a : ZMod 5, a ^ 5 = a := by decide
+
+lemma five_dvd_add_of_pow {a b : ℤ} (h : (5 : ℤ) ∣ a ^ 5 + b ^ 5) : (5 : ℤ) ∣ a + b := by
+  have h0 : ((a ^ 5 + b ^ 5 : ℤ) : ZMod 5) = 0 := by
+    rw [ZMod.intCast_zmod_eq_zero_iff_dvd]; exact_mod_cast h
+  have h1 : ((a + b : ℤ) : ZMod 5) = 0 := by
+    push_cast at h0 ⊢; rwa [zmod5_fermat, zmod5_fermat] at h0
+  exact_mod_cast (ZMod.intCast_zmod_eq_zero_iff_dvd _ 5).mp h1
+
+lemma pow_congr {m x y : 𝓞 K5} (n : ℕ) (h : m ∣ x - y) : m ∣ x ^ n - y ^ n :=
+  dvd_trans h (sub_dvd_pow_sub_pow x y n)
+
+lemma lam_not_dvd_two : ¬ lam ∣ (2 : 𝓞 K5) := by
+  intro h
+  have := lam_dvd_int (m := 2) (by exact_mod_cast h)
+  norm_num at this
+
+/-- Extract a fifth power from a factor coprime to the rest and to `2`. -/
+lemma fifth_of_coprime {γ R w : 𝓞 K5} {E : (𝓞 K5)ˣ} {j : ℕ} (hcop : IsCoprime γ R)
+    (h2 : ¬ (2 : 𝓞 K5) ∣ γ) (h : γ * R = E * 2 ^ j * w ^ 5) :
+    ∃ t : 𝓞 K5, ∃ e : (𝓞 K5)ˣ, γ = e * t ^ 5 := by
+  have hcop2 : IsCoprime ((2 : 𝓞 K5) ^ j) γ :=
+    ((Prime.coprime_iff_not_dvd two_prime).mpr h2).pow_left
+  have hE : (↑E⁻¹ : 𝓞 K5) * ↑E = 1 := by simp
+  have hγE : γ * (↑E⁻¹ * R) = 2 ^ j * w ^ 5 := by
+    rw [show γ * (↑E⁻¹ * R) = ↑E⁻¹ * (γ * R) by ring, h]
+    linear_combination (2 ^ j * w ^ 5 : 𝓞 K5) * hE
+  have h2R : (2 : 𝓞 K5) ^ j ∣ ↑E⁻¹ * R := hcop2.dvd_of_dvd_mul_left ⟨w ^ 5, hγE⟩
+  obtain ⟨R', hR'⟩ := h2R
+  have hγR' : γ * R' = w ^ 5 := by
+    apply mul_left_cancel₀ (pow_ne_zero j two_ne_zero)
+    calc (2 : 𝓞 K5) ^ j * (γ * R') = γ * (2 ^ j * R') := by ring
+      _ = γ * (↑E⁻¹ * R) := by rw [hR']
+      _ = ↑E⁻¹ * (γ * R) := by ring
+      _ = 2 ^ j * w ^ 5 := by rw [h]; linear_combination (2 ^ j * w ^ 5 : 𝓞 K5) * hE
+  have hcopR' : IsCoprime γ R' := by
+    have : IsCoprime γ (↑E⁻¹ * R) := (isCoprime_mul_unit_left_right E⁻¹.isUnit γ R).mpr hcop
+    exact this.of_isCoprime_of_dvd_right ⟨2 ^ j, by rw [hR']; ring⟩
+  obtain ⟨t, e, he⟩ := exists_associated_pow_of_mul_eq_pow' hcopR' hγR'
+  exact ⟨t, e, by rw [← he, mul_comm]⟩
+
+end CaseC
+
 end OMA672Z5
