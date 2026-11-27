@@ -1,0 +1,9 @@
+import Zeta5
+open OMA672Z5
+#check @case_c
+#check @OMA672Z5.σ
+#check @RingOfIntegers.rank
+#check @IsCyclotomicExtension.finrank
+#check @Ideal.quotientEquiv
+#check @RingEquiv.ofHomInv
+#check @Ideal.IsPrime.isMaximal
