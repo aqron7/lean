@@ -417,4 +417,108 @@ theorem stageP {j : ℕ} (hj : j = 1 ∨ j = 3) {ρ W : 𝓞 K5} {c : ℤ} {E' :
 
 end StageP
 
+section Descent
+
+/-- **The descent** (case a): every real solution has `X + ζ Y` a unit. -/
+theorem descent (n : ℕ) : ∀ (j : ℕ), (j = 1 ∨ j = 3) → ∀ (X Y Z : 𝓞 K5) (E : (𝓞 K5)ˣ),
+    σ X = X → σ Y = Y → IsCoprime X Y → ¬ lam ∣ X → ¬ lam ∣ Y → ¬ lam ∣ Z →
+    X ^ 5 + Y ^ 5 = E * 2 ^ j * Z ^ 5 → Ideal.absNorm (Ideal.span {Z}) = n →
+    IsUnit (X + ζ * Y) := by
+  induction n using Nat.strong_induction_on with
+  | _ n ih =>
+  intro j hj X Y Z E hX hY hcop hlX hlY hlZ heq hn
+  by_contra hnu
+  obtain ⟨-, r1, r2, r0, t1, t2, W, hr1, hr2, hr0, hWσ, h1, h2, h0, hnorm⟩ :=
+    stageR hX hY hcop hlX hlY hlZ heq
+  have hlXY := not_lam_sum hlZ heq
+  have hgood := good_t1 hj hX hY hcop hlXY hr2 hr0 h1 h2 h0
+  have hlt1 : ¬ lam ∣ t1 := by
+    intro h; apply lam_factor hlXY 1; rw [pow_one, h1]
+    exact dvd_mul_of_dvd_right (dvd_pow h (by norm_num)) _
+  obtain ⟨k, c, hkc⟩ := normalize hlt1
+  have hρ3 := hgood k c hkc
+  have hz5 := ζ_pow_five
+  have hρ5 : (ζ ^ k * t1) ^ 5 = t1 ^ 5 := by
+    rw [mul_pow, ← pow_mul, show k * 5 = 5 * k by ring, pow_mul, hz5, one_pow, one_mul]
+  have hσ1 : σ (X + ζ * Y) = X + ζ ^ 4 * Y := by rw [map_add, map_mul, hX, hY, σ_ζ]
+  have hA : X + ζ * Y = ζ ^ 3 * r1 * (ζ ^ k * t1) ^ 5 := by rw [hρ5, h1]
+  have hB : X + ζ ^ 4 * Y = ζ ^ 2 * r1 * (σ (ζ ^ k * t1)) ^ 5 := by
+    rw [← hσ1, hA, σ_pow_conj hr1, show ζ ^ (4 * 3) = ζ ^ 2 from ζ_pow_eq_of_mod (by norm_num)]
+  set ρ := ζ ^ k * t1 with hρ
+  have c14 : IsCoprime (X + ζ * Y) (X + ζ ^ 4 * Y) := by
+    simpa using all_coprime hcop hlXY 1 4 (by norm_num) (by norm_num)
+  have hcopρ : IsCoprime ρ (σ ρ) := by
+    rw [hA, hB] at c14
+    exact (c14.of_isCoprime_of_dvd_left ⟨ζ ^ 3 * r1 * ρ ^ 4, by ring⟩).of_isCoprime_of_dvd_right
+      ⟨ζ ^ 2 * r1 * (σ ρ) ^ 4, by ring⟩
+  have hz1 : ζ ^ 2 * (ζ - 1) ≠ 0 := mul_ne_zero (pow_ne_zero _ ζ_ne_zero)
+    (sub_ne_zero.mpr ζ_ne_one)
+  have hsum0 : ζ ^ 2 * (ζ - 1) * ((r1 : 𝓞 K5) * (ρ ^ 5 + (σ ρ) ^ 5) + φ * (2 ^ j * r0 * W ^ 5)) = 0 := by
+    rw [← h0]
+    have eA : (r1 : 𝓞 K5) * ρ ^ 5 = ζ ^ 2 * (X + ζ * Y) := by rw [hA]; linear_combination (-(r1 : 𝓞 K5) * ρ ^ 5) * hz5
+    have eB : (r1 : 𝓞 K5) * (σ ρ) ^ 5 = ζ ^ 3 * (X + ζ ^ 4 * Y) := by
+      rw [hB]; linear_combination (-(r1 : 𝓞 K5) * (σ ρ) ^ 5) * hz5
+    rw [mul_add (r1 : 𝓞 K5), eA, eB]
+    linear_combination (Y * ζ ^ 5 - Y * ζ ^ 4 + ζ ^ 2 * (X + Y)) * hz5
+  have hsum : (r1 : 𝓞 K5) * (ρ ^ 5 + (σ ρ) ^ 5) = -(φ * (2 ^ j * r0 * W ^ 5)) := by
+    have := (mul_eq_zero.mp hsum0).resolve_left hz1; linear_combination this
+  have hΦ : ((Φ : (𝓞 K5)ˣ) : 𝓞 K5) = φ := IsUnit.unit_spec _
+  have heqρ : ρ ^ 5 + (σ ρ) ^ 5 = ((-(Φ * r1⁻¹ * r0)) : (𝓞 K5)ˣ) * 2 ^ j * W ^ 5 := by
+    apply mul_left_cancel₀ r1.ne_zero
+    have hinv : (r1 : 𝓞 K5) * ((r1⁻¹ : (𝓞 K5)ˣ) : 𝓞 K5) = 1 := Units.mul_inv _
+    rw [Units.val_neg, Units.val_mul, Units.val_mul, hΦ]
+    linear_combination hsum + (φ * 2 ^ j * r0 * W ^ 5) * hinv
+  have hlW : ¬ lam ∣ W := by
+    intro h; apply hlXY; rw [h0]; exact dvd_mul_of_dvd_right (dvd_pow h (by norm_num)) _
+  obtain ⟨X', Y', Z', E'', hX', hY', hcop', hlX', hlY', hlZ', heq', hZ'W, hback⟩ :=
+    stageP hj hkc hρ3 hcopρ hlW heqρ
+  have ht1nu : ¬ IsUnit t1 := by
+    intro hu; apply hnu; rw [h1]
+    exact (((ζ_prim.isUnit (by norm_num)).pow 3).mul r1.isUnit).mul (hu.pow 5)
+  have hWpos : 0 < Ideal.absNorm (Ideal.span {W}) := absNorm_pos (fun h => hlW (h ▸ dvd_zero _))
+  have ht1 : 2 ≤ Ideal.absNorm (Ideal.span {t1}) := by
+    have h0' := absNorm_pos (a := t1) (fun h => hlt1 (h ▸ dvd_zero _))
+    have h1' : Ideal.absNorm (Ideal.span {t1}) ≠ 1 := fun h => ht1nu (absNorm_eq_one.mp h)
+    omega
+  have hlt : Ideal.absNorm (Ideal.span {Z'}) < n := by
+    rw [← hn]; nlinarith
+  have hU := ih _ hlt j hj X' Y' Z' E'' hX' hY' hcop' hlX' hlY' hlZ' heq' rfl
+  have hρu := hback hU
+  apply ht1nu
+  have : IsUnit (ζ ^ k * t1) := hρu
+  exact isUnit_of_mul_isUnit_right this
+
+/-- **Dénes, case a**: `x⁵ + y⁵ = 2^j z⁵` (`j = 1, 3`) with `5 ∤ xyz`, `x, y` coprime, forces
+`x = y` and `j = 1`. -/
+theorem case_a {x y z : ℤ} {j : ℕ} (hj : j = 1 ∨ j = 3) (h : x ^ 5 + y ^ 5 = 2 ^ j * z ^ 5)
+    (hxy : IsCoprime x y) (hx : ¬ (5 : ℤ) ∣ x) (hy : ¬ (5 : ℤ) ∣ y) (hz : ¬ (5 : ℤ) ∣ z) :
+    x = y ∧ j = 1 := by
+  have hX : σ (x : 𝓞 K5) = x := map_intCast σ x
+  have hY : σ (y : 𝓞 K5) = y := map_intCast σ y
+  have hcop : IsCoprime (x : 𝓞 K5) (y : 𝓞 K5) := hxy.map (Int.castRingHom (𝓞 K5))
+  have hlX : ¬ lam ∣ (x : 𝓞 K5) := fun hl => hx (lam_dvd_int hl)
+  have hlY : ¬ lam ∣ (y : 𝓞 K5) := fun hl => hy (lam_dvd_int hl)
+  have hlZ : ¬ lam ∣ (z : 𝓞 K5) := fun hl => hz (lam_dvd_int hl)
+  have heq : (x : 𝓞 K5) ^ 5 + (y : 𝓞 K5) ^ 5 = ((1 : (𝓞 K5)ˣ) : 𝓞 K5) * 2 ^ j * (z : 𝓞 K5) ^ 5 := by
+    have := congrArg (fun t : ℤ => (t : 𝓞 K5)) h; push_cast at this; rw [this]; simp
+  have hU := descent _ j hj _ _ _ 1 hX hY hcop hlX hlY hlZ heq rfl
+  obtain ⟨kf, -⟩ := stageR hX hY hcop hlX hlY hlZ heq
+  obtain ⟨a, w, hv, hw⟩ := unit_decomp' hU.unit
+  rw [IsUnit.unit_spec] at hv
+  have ha := kf a w 1 hw (by rw [one_pow, mul_one]; exact hv)
+  rw [show ζ ^ a = ζ ^ 3 from ζ_pow_eq_of_mod (by omega)] at hv
+  have hxyO := eq_of_unit_form hX hY hw hv
+  have hxy' : x = y := Int.cast_injective hxyO
+  refine ⟨hxy', ?_⟩
+  subst hxy'
+  rcases hj with rfl | rfl
+  · rfl
+  · exfalso
+    have hu : IsUnit x := isCoprime_self.mp hxy
+    rcases Int.isUnit_iff.mp hu with rfl | rfl <;>
+    · have := h; set w := z ^ 5; omega
+
+end Descent
+
 end OMA672Z5
+
