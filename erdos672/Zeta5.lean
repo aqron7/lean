@@ -1209,6 +1209,177 @@ lemma maillet_finish {μ : ℕ} (hμ : 1 ≤ μ)
   · rw [show 5 * (μ - 1) + 5 = 5 * μ by omega, mul_pow, ← Units.val_pow_eq_pow_val, ← hη]
     exact hnew
 
+/-- Pick a fifth-power decomposition for a factor coprime to its cofactor. -/
+lemma pick_fifth {γ R w : 𝓞 K5} {E : (𝓞 K5)ˣ} {j : ℕ} (hcop : IsCoprime γ R) (h2 : ¬ (2 : 𝓞 K5) ∣ γ)
+    (h : γ * R = E * 2 ^ j * w ^ 5) : ∃ e : (𝓞 K5)ˣ, ∃ t : 𝓞 K5, γ = e * t ^ 5 := by
+  obtain ⟨t, e, he⟩ := fifth_of_coprime hcop h2 h
+  exact ⟨e, t, he⟩
+
+/-- **Maillet's lemma** for `l = 5` and `A = 2^j`. -/
+theorem maillet (μ : ℕ) : ∀ (j : ℕ) (u v w : 𝓞 K5) (E : (𝓞 K5)ˣ), ¬ lam ∣ u → ¬ lam ∣ v →
+    ¬ lam ∣ w → IsCoprime u v → u ^ 5 + v ^ 5 = E * lam ^ (5 * μ + 5) * 2 ^ j * w ^ 5 → False := by
+  induction μ using Nat.strong_induction_on with
+  | _ μ ih =>
+  intro j u0 v0 w E hu0 hv0 hw hcop0 heq0
+  obtain ⟨k1, a, hua⟩ := normalize hu0
+  obtain ⟨k2, b, hvb⟩ := normalize hv0
+  set u := ζ ^ k1 * u0 with hudef
+  set v := ζ ^ k2 * v0 with hvdef
+  have hζu : ∀ k : ℕ, IsUnit (ζ ^ k) := fun k => (hζ5.toInteger_isPrimitiveRoot.isUnit (by norm_num)).pow k
+  have hp5 : ∀ (k : ℕ) (x : 𝓞 K5), (ζ ^ k * x) ^ 5 = x ^ 5 := fun k x => by
+    rw [mul_pow, ← pow_mul, mul_comm k 5, pow_mul, ζ_pow_five, one_pow, one_mul]
+  have heq : u ^ 5 + v ^ 5 = E * lam ^ (5 * μ + 5) * 2 ^ j * w ^ 5 := by rw [hudef, hvdef, hp5, hp5]; exact heq0
+  have hu : ¬ lam ∣ u := not_lam_dvd_mul (by obtain ⟨U, hU⟩ := hζu k1; rw [← hU]; exact not_lam_dvd_unit U) hu0
+  have hv : ¬ lam ∣ v := not_lam_dvd_mul (by obtain ⟨U, hU⟩ := hζu k2; rw [← hU]; exact not_lam_dvd_unit U) hv0
+  have hcop : IsCoprime u v :=
+    (isCoprime_mul_unit_left_left (hζu k1) _ _).mpr ((isCoprime_mul_unit_left_right (hζu k2) _ _).mpr hcop0)
+  clear_value u v
+  -- λ² ∣ u + v
+  have hl5 : lam ∣ u ^ 5 + v ^ 5 := by
+    rw [heq]; exact dvd_mul_of_dvd_left (dvd_mul_of_dvd_left (dvd_mul_of_dvd_right
+      (dvd_pow_self lam (by omega)) _) _) _
+  have hab5 : lam ∣ ((a ^ 5 + b ^ 5 : ℤ) : 𝓞 K5) := by
+    have e1 := dvd_trans (dvd_pow_self lam (by norm_num : 2 ≠ 0)) (pow_congr 5 hua)
+    have e2 := dvd_trans (dvd_pow_self lam (by norm_num : 2 ≠ 0)) (pow_congr 5 hvb)
+    have := dvd_sub (dvd_sub hl5 e1) e2
+    push_cast; convert this using 1; ring
+  have hab : (5 : ℤ) ∣ a + b := five_dvd_add_of_pow (lam_dvd_int hab5)
+  have h2uv : lam ^ 2 ∣ u + v := by
+    have := dvd_add (dvd_add hua hvb) (lam_pow_dvd_of_five_dvd hab (j := 2) (by norm_num))
+    convert this using 1; push_cast; ring
+  -- the four factors
+  obtain ⟨γ1, h1, hl1⟩ := factor_i hv h2uv 1 (by norm_num)
+  obtain ⟨γ2, h2, hl2⟩ := factor_i hv h2uv 2 (by norm_num)
+  obtain ⟨γ3, h3, hl3⟩ := factor_i hv h2uv 3 (by norm_num)
+  obtain ⟨γ4, h4, hl4⟩ := factor_i hv h2uv 4 (by norm_num)
+  have h1' := h1
+  rw [pow_one] at h1'
+  set Γ := γ1 * γ2 * γ3 * γ4 with hΓ
+  have hlΓ : ¬ lam ∣ Γ := not_lam_dvd_mul (not_lam_dvd_mul (not_lam_dvd_mul hl1 hl2) hl3) hl4
+  have hprod : (u + v) * Γ = E * lam ^ (5 * μ + 1) * 2 ^ j * w ^ 5 := by
+    have hp := prod_five u v
+    rw [h1', h2, h3, h4, heq] at hp
+    apply mul_left_cancel₀ (pow_ne_zero 4 lam_ne_zero)
+    rw [hΓ]; linear_combination hp
+  have hcopL : IsCoprime (lam ^ (5 * μ + 1)) Γ :=
+    ((Prime.coprime_iff_not_dvd lam_prime).mpr hlΓ).pow_left
+  obtain ⟨γ0, h0⟩ : lam ^ (5 * μ + 1) ∣ u + v :=
+    hcopL.dvd_of_dvd_mul_right ⟨E * 2 ^ j * w ^ 5, by rw [hprod]; ring⟩
+  have hprod0 : γ0 * Γ = E * 2 ^ j * w ^ 5 := by
+    apply mul_left_cancel₀ (pow_ne_zero (5 * μ + 1) lam_ne_zero)
+    rw [← mul_assoc, ← h0, hprod]; ring
+  have hl0 : ¬ lam ∣ γ0 := by
+    intro hl
+    have : lam ∣ (E : 𝓞 K5) * 2 ^ j * w ^ 5 := by rw [← hprod0]; exact dvd_mul_of_dvd_left hl _
+    exact not_lam_dvd_mul (not_lam_dvd_mul (not_lam_dvd_unit E) (not_lam_dvd_two_pow j))
+      (not_lam_dvd_pow hw 5) this
+  -- base case μ = 0
+  rcases Nat.eq_zero_or_pos μ with hμ0 | hμ
+  · subst hμ0
+    apply hl0
+    rw [h0] at h2uv
+    simpa using lam_cancel (j := 1) (by simpa [pow_succ] using h2uv)
+  -- pairwise coprimality
+  have cq : ∀ {r s : ℕ} {X Y : 𝓞 K5}, r < s → s < 5 → u + ζ ^ r * v = lam * X →
+      u + ζ ^ s * v = lam * Y → IsCoprime X Y := fun hrs hs hX hY => by
+    obtain ⟨w', hw', he'⟩ := diff_eq hrs hs
+    exact coprime_quot hcop hX hY he' hw'
+  have h0' : u + ζ ^ 0 * v = lam * (lam ^ (5 * μ) * γ0) := by rw [pow_zero, one_mul, h0]; ring
+  have c12 := cq (by norm_num) (by norm_num) h1 h2
+  have c13 := cq (by norm_num) (by norm_num) h1 h3
+  have c14 := cq (by norm_num) (by norm_num) h1 h4
+  have c23 := cq (by norm_num) (by norm_num) h2 h3
+  have c24 := cq (by norm_num) (by norm_num) h2 h4
+  have c34 := cq (by norm_num) (by norm_num) h3 h4
+  have c0 : ∀ {s : ℕ} {Y : 𝓞 K5}, 1 ≤ s → s < 5 → u + ζ ^ s * v = lam * Y → IsCoprime γ0 Y :=
+    fun hs1 hs5 hY => (cq (by omega) hs5 h0' hY).of_mul_left_right
+  have c01 := c0 (by norm_num) (by norm_num) h1
+  have c02 := c0 (by norm_num) (by norm_num) h2
+  have c03 := c0 (by norm_num) (by norm_num) h3
+  have c04 := c0 (by norm_num) (by norm_num) h4
+  -- decompose γ0 = 2^j0 * g0
+  have hγ0ne : γ0 ≠ 0 := by rintro rfl; exact hl0 (dvd_zero _)
+  obtain ⟨g0, hg0, hg02⟩ :=
+    (FiniteMultiplicity.of_not_isUnit two_prime.not_unit hγ0ne).exists_eq_pow_mul_and_not_dvd
+  set j0 := multiplicity (2 : 𝓞 K5) γ0
+  have hcopg : IsCoprime g0 (2 ^ j0 * Γ) := by
+    have hg2 : IsCoprime g0 (2 ^ j0) := ((Prime.coprime_iff_not_dvd two_prime).mpr hg02).symm.pow_right
+    have hgdvd : g0 ∣ γ0 := ⟨2 ^ j0, by rw [hg0]; ring⟩
+    have hgΓ : IsCoprime g0 Γ := by
+      have := ((c01.mul_right c02).mul_right c03).mul_right c04
+      exact this.of_isCoprime_of_dvd_left hgdvd
+    exact hg2.mul_right hgΓ
+  obtain ⟨e0, w0, he0⟩ := pick_fifth hcopg hg02 (by rw [← hprod0, hg0]; ring)
+  have he0' : γ0 = 2 ^ j0 * (e0 * w0 ^ 5) := by rw [hg0, he0]
+  have IH : ∀ (j : ℕ) (u v w : 𝓞 K5) (E : (𝓞 K5)ˣ), ¬ lam ∣ u → ¬ lam ∣ v → ¬ lam ∣ w →
+      IsCoprime u v → u ^ 5 + v ^ 5 = E * lam ^ (5 * (μ - 1) + 5) * 2 ^ j * w ^ 5 → False :=
+    ih (μ - 1) (by omega)
+  -- choose a pair of odd factors
+  have h2u : ¬ IsUnit (2 : 𝓞 K5) := two_prime.not_unit
+  by_cases d1 : (2 : 𝓞 K5) ∣ γ1
+  · have d2 : ¬ (2 : 𝓞 K5) ∣ γ2 := fun d => h2u (c12.isUnit_of_dvd' d1 d)
+    have d3 : ¬ (2 : 𝓞 K5) ∣ γ3 := fun d => h2u (c13.isUnit_of_dvd' d1 d)
+    obtain ⟨er, tr, her⟩ := pick_fifth (((c12.symm.mul_right c23).mul_right c24).mul_right c02.symm) d2
+      (by rw [← hprod0, hΓ]; ring)
+    obtain ⟨es, ts, hes⟩ := pick_fifth (((c13.symm.mul_right c23.symm).mul_right c34).mul_right c03.symm) d3
+      (by rw [← hprod0, hΓ]; ring)
+    exact maillet_finish hμ IH (by norm_num : 2 < 3) (by norm_num) (by norm_num) h0 h2 h3 c23 hl2 hl3 hl0
+      her hes he0'
+  · by_cases d2 : (2 : 𝓞 K5) ∣ γ2
+    · have d3 : ¬ (2 : 𝓞 K5) ∣ γ3 := fun d => h2u (c23.isUnit_of_dvd' d2 d)
+      obtain ⟨er, tr, her⟩ := pick_fifth (((c12.mul_right c13).mul_right c14).mul_right c01.symm) d1
+        (by rw [← hprod0, hΓ]; ring)
+      obtain ⟨es, ts, hes⟩ := pick_fifth (((c13.symm.mul_right c23.symm).mul_right c34).mul_right c03.symm) d3
+        (by rw [← hprod0, hΓ]; ring)
+      exact maillet_finish hμ IH (by norm_num : 1 < 3) (by norm_num) (by norm_num) h0 h1 h3 c13 hl1 hl3 hl0
+        her hes he0'
+    · obtain ⟨er, tr, her⟩ := pick_fifth (((c12.mul_right c13).mul_right c14).mul_right c01.symm) d1
+        (by rw [← hprod0, hΓ]; ring)
+      obtain ⟨es, ts, hes⟩ := pick_fifth (((c12.symm.mul_right c23).mul_right c24).mul_right c02.symm) d2
+        (by rw [← hprod0, hΓ]; ring)
+      exact maillet_finish hμ IH (by norm_num : 1 < 2) (by norm_num) (by norm_num) h0 h1 h2 c12 hl1 hl2 hl0
+        her hes he0'
+
+/-- **Case c** (Dénes): no coprime solution of `x^5 + y^5 = 2^j z^5` with `5 ∣ z`, `z ≠ 0`. -/
+theorem case_c {x y z : ℤ} {j : ℕ} (h : x ^ 5 + y ^ 5 = 2 ^ j * z ^ 5)
+    (hxy : IsCoprime x y) (hz5 : (5 : ℤ) ∣ z) (hz0 : z ≠ 0) : False := by
+  have hp : Prime (5 : ℤ) := Int.prime_iff_natAbs_prime.mpr (by norm_num)
+  have h5u : ¬ IsUnit (5 : ℤ) := hp.not_unit
+  -- x, y prime to 5
+  have hx5 : ¬ (5 : ℤ) ∣ x := by
+    intro hx
+    have : (5 : ℤ) ∣ y ^ 5 := by
+      have : y ^ 5 = 2 ^ j * z ^ 5 - x ^ 5 := by linarith
+      rw [this]; exact dvd_sub (dvd_mul_of_dvd_right (dvd_pow hz5 (by norm_num)) _) (dvd_pow hx (by norm_num))
+    exact h5u (hxy.isUnit_of_dvd' hx (hp.dvd_of_dvd_pow this))
+  have hy5 : ¬ (5 : ℤ) ∣ y := by
+    intro hy
+    have : (5 : ℤ) ∣ x ^ 5 := by
+      have : x ^ 5 = 2 ^ j * z ^ 5 - y ^ 5 := by linarith
+      rw [this]; exact dvd_sub (dvd_mul_of_dvd_right (dvd_pow hz5 (by norm_num)) _) (dvd_pow hy (by norm_num))
+    exact h5u (hxy.isUnit_of_dvd' (hp.dvd_of_dvd_pow this) hy)
+  -- z = 5^k z1
+  obtain ⟨z1, hz, hz1⟩ := (FiniteMultiplicity.of_not_isUnit h5u hz0).exists_eq_pow_mul_and_not_dvd
+  set k := multiplicity (5 : ℤ) z
+  have hk : 1 ≤ k := by
+    rcases Nat.eq_zero_or_pos k with h0 | h0
+    · rw [h0, pow_zero, one_mul] at hz; exact absurd (hz ▸ hz5) hz1
+    · exact h0
+  have hlx : ¬ lam ∣ (x : 𝓞 K5) := fun hl => hx5 (lam_dvd_int hl)
+  have hly : ¬ lam ∣ (y : 𝓞 K5) := fun hl => hy5 (lam_dvd_int hl)
+  have hlz : ¬ lam ∣ (z1 : 𝓞 K5) := fun hl => hz1 (lam_dvd_int hl)
+  have hcop : IsCoprime (x : 𝓞 K5) (y : 𝓞 K5) := hxy.map (Int.castRingHom (𝓞 K5))
+  apply maillet (4 * k - 1) j x y z1 (u5_isUnit.unit ^ (5 * k)) hlx hly hlz hcop
+  have hO : ((x : 𝓞 K5)) ^ 5 + (y : 𝓞 K5) ^ 5 = 2 ^ j * ((5 : 𝓞 K5) ^ k * z1) ^ 5 := by
+    have := congrArg (fun t : ℤ => (t : 𝓞 K5)) h
+    rw [hz] at this; push_cast at this; exact this
+  rw [hO, ← five_eq]
+  have e : 5 * (4 * k - 1) + 5 = 4 * (5 * k) := by omega
+  rw [e, Units.val_pow_eq_pow_val, IsUnit.unit_spec]
+  generalize lam = L; generalize u5 = U; ring
+
 end CaseC
 
 end OMA672Z5
+
+
