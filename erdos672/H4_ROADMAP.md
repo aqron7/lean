@@ -79,3 +79,28 @@ Family F_R: X^5 + Y^5 = 2^j eps Z^5, X, Y, Z in Z[phi] coprime, lambda not divid
   is also a unit times a 5th power). Candidates: Eisenstein reciprocity plus Kummer's supplementary law for l = 5,
   or the Hilbert symbol product formula. Vandiver, Trans. AMS 31 (1929) 613-642, p. 633 has the derivation;
   ams.org is behind a Cloudflare check, so it has to be uploaded manually.
+
+## Case a: COMPLETE PROOF PLAN (2026-11-27). Only Eisenstein reciprocity for the integer 2 is needed.
+Family F_R(j): X^5 + Y^5 = 2^j eps Z^5, X, Y real (sigma-fixed) in O, coprime, lambda not dividing Z, j in {1,3}.
+Claim T: every F_R solution has X + zeta Y a unit (then X = Y = unit, so j = 1 and the integer solution is x = y).
+Strong induction on absNorm(Z).
+S1  2 | X + Y (2 prime; if 2 | X + zeta^i Y with i != 0 then by sigma 2 | Y). Factors X + zeta^i Y pairwise coprime,
+    odd for i != 0: X + zeta^i Y = unit * 5th power, X + Y = 2^j e0 W^5, W | Z, and W strictly divides Z if rho_1 is not a unit.
+S2  Mod lambda^5: X zeta-coefficients force units zeta^3 r1 (pair 1,4) and zeta^1 r2 (pair 2,3), r_i real
+    (X s_k + Y s_{k-1} = 0 mod lambda^5, s_j = zeta^j - zeta^-j; compare the real units s_{k-1}/s_k mod 5).
+S3  For each prime P | rho_1, in the finite field O/P with k = (q-1)/5:
+    pairs a=2 and a=3 give psi(phi)^k = 1 (so psi(real unit)^k = 1), a=2 gives psi(Y(1-zeta))^k = 1,
+    a=0 gives psi(2)^(jk) = 1, so psi(2)^k = 1: 2 is a 5th power mod P. Pure algebra in F_q^*.
+S4  Degree 1: P | X + zeta Y with X, Y real implies zeta = integer mod P (Frobenius on F_p(phi)).
+S5  Eisenstein for 2 (eis.py: 386/386): P = ker(psi), psi to ZMod p, pi a primary generator, psi(2)^k = 1, so pi^3 = 1 mod 2.
+    Proof: J = jacobiSum chi chi. (i) J = chi(1/2)^2 mod 2 (involution t <-> 1-t). (ii) J = -1 mod lambda^2 (Mathlib).
+    (iii) J in P and in tau_2^-1 P (power sums of degree < p-1 vanish). (iv) J * conj J = p (Mathlib), so
+    J = w * pi * tau_3(pi) with w a primary unit, w = +-phi^n. Then (pi/2) = (2/P) using tau_3 (zeta^u -> zeta^3u).
+S6  Good(x): primary normalization of x has cube = 1 mod 2. Multiplicative; true for units and for the primes in S5.
+    So rho' = zeta^a rho_1 (primary) satisfies rho'^3 = 1 mod 2, hence sigma rho' = rho' mod 2 (sigma x = x^4 mod 2).
+S7  Three-term relation: rho'^5 + (sigma rho')^5 = 2^j eps' W^5. B_i = rho' + zeta^i sigma rho', 2 | B_0, zeta^2 B_1 and
+    zeta^3 B_4 real = real unit * real 5th power. zeta B_4 - B_1 = (zeta - 1)(rho' - sigma rho') is in lambda^3, so
+    u4/u1 = rational mod lambda^3, Kummer lemma: u4/u1 = eta^5 with eta real. New solution (R1, eta R4, R0), R0 | W.
+S8  Backward: if the new solution is trivial (B_0 = 2 u0, B_1, B_4 units) then u1 + u4 = -2 phi u0, i.e. v + w = 2 in
+    units of Z[phi]: v in {1, phi, phi^-1, phi^2, phi^-2, -phi^-1}; integrality of rho' = u0((1+zeta)v - 2 zeta)/lambda
+    forces v = 1 mod lambda, so v = 1 and rho' = u0 is a unit (back.py), contradiction.
