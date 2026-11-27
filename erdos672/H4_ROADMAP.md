@@ -26,3 +26,13 @@ Proof (Satz 4) splits into three cases:
     For q = (2) (inert, residue field F_16, order 15): zeta has order 5, not a 5th power. Finite check.
  c) 5 | z: Maillet's lemma (Acta Math. 24, 1901, 247-256), not yet obtained.
 Dependencies still to source: Vandiver PNAS 17 (1931) 661-673; Maillet Acta Math 24 (1901).
+
+## Maillet 1901 (Acta Math. 24, 247-256), lemma = Denes case c (5 | z), read 2026-11-27
+Lemme: u^l + v^l = E (1-a)^(mu l - beta) A w^l impossible (u, v, w coprime to each other and to l,
+A coprime to l with at most l-3 prime factors; for l = 5 and A = 2 or 8: one prime, ok).
+Proof (about 1.5 pages): descent on mu. Choose two factors u + a^r v, u + a^s v not divisible by A's primes,
+each = (1-a) e t^l. Eliminate via the 3x3 determinant to get t_r^l - eps t_s^l = E1 A (1-a)^(mu l - l - beta) w1^l.
+Then eps is congruent to a rational integer mod a high power of (1-a), so by KUMMER'S LEMMA eps = eps'^l,
+giving the same equation with mu - 1; mu = 1 is impossible by valuation count.
+Needed: Kummer's lemma for l = 5 (unit = rational integer mod lambda^5 => 5th power): finite check on
+zeta^k phi^m, using the unit classification of step 5.
