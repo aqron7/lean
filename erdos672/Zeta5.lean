@@ -564,6 +564,84 @@ theorem kummer_core {k r : ℕ} {n : ℤ} (h : lam ^ 3 ∣ ζ ^ k * φ ^ r - n) 
     Nat.Coprime.dvd_of_dvd_mul_left (by norm_num) (five_dvd_of_lam_dvd_nat hr4)
   exact Nat.Coprime.dvd_of_dvd_mul_right (Nat.Coprime.pow_right _ (by norm_num)) h5'
 
+lemma lam_pow_three_dvd_125 : lam ^ 3 ∣ (125 : 𝓞 K5) :=
+  ⟨lam * u5 ^ 3 * 5 ^ 2 * 0 + lam ^ 9 * u5 ^ 3, by
+    have := five_eq
+    have e : (125 : 𝓞 K5) = 5 ^ 3 := by norm_num
+    rw [e, ← this]; ring⟩
+
+/-- **Kummer's lemma** for `l = 5`: a unit congruent to a rational integer modulo `λ³` is a
+fifth power of a unit. -/
+theorem kummer_lemma (ε : (𝓞 K5)ˣ) (n : ℤ) (h : lam ^ 3 ∣ (ε : 𝓞 K5) - n) :
+    ∃ η : (𝓞 K5)ˣ, ε = η ^ 5 := by
+  obtain ⟨k, m, s, hs, hε⟩ := unit_form ε
+  set q := m / 5 with hq
+  set r0 := (m % 5).toNat with hr0
+  have hm : m = 5 * q + r0 := by
+    have h2 : (0 : ℤ) ≤ m % 5 := Int.emod_nonneg m (by norm_num)
+    rw [hr0, Int.toNat_of_nonneg h2, hq]; omega
+  have hr05 : r0 < 5 := by
+    have : m % 5 < 5 := Int.emod_lt_of_pos m (by norm_num)
+    omega
+  set β : (𝓞 K5)ˣ := Φ ^ q with hβ
+  have hΦm : ((Φ ^ m : (𝓞 K5)ˣ) : 𝓞 K5) = ((β : 𝓞 K5)) ^ 5 * φ ^ r0 := by
+    rw [hm, zpow_add, Units.val_mul, zpow_natCast, Units.val_pow_eq_pow_val Φ r0]
+    congr 1
+    rw [hβ, ← Units.val_pow_eq_pow_val, show (5 : ℤ) * q = q * ((5 : ℕ) : ℤ) by push_cast; ring,
+      zpow_mul, zpow_natCast]
+  have hk : ζ ^ k = ζ ^ (k % 5) := by
+    conv_lhs => rw [← Nat.mod_add_div k 5, pow_add, pow_mul, ζ_pow_five, one_pow, mul_one]
+  obtain ⟨c, hc⟩ := exists_int_congr (β : 𝓞 K5)
+  have hc5 := pow_five_congr hc
+  -- c is prime to 5
+  have hc_cop : IsCoprime (c ^ 5) 125 := by
+    have hp : Prime (5 : ℤ) := Int.prime_iff_natAbs_prime.mpr (by norm_num)
+    have h5c : ¬ (5 : ℤ) ∣ c := by
+      intro h5
+      apply lam_not_dvd_one
+      have hlc : lam ∣ (c : 𝓞 K5) := by simpa using lam_pow_dvd_of_five_dvd h5 (j := 1) (by norm_num)
+      have hlb : lam ∣ (β : 𝓞 K5) := by have := dvd_add hc hlc; simpa using this
+      exact dvd_trans hlb ⟨↑β⁻¹, by simp⟩
+    have : IsCoprime c 5 := ((Prime.coprime_iff_not_dvd hp).mpr h5c).symm
+    have e : (125 : ℤ) = 5 ^ 3 := by norm_num
+    rw [e]; exact this.pow
+  obtain ⟨a, b, hab⟩ := hc_cop
+  have hs2 : s * s = 1 := by rcases hs with rfl | rfl <;> norm_num
+  -- reduce to ζ^(k%5) φ^r0 ≡ integer mod λ³
+  have hkey : lam ^ 3 ∣ ζ ^ (k % 5) * φ ^ r0 - ((s * a * n : ℤ) : 𝓞 K5) := by
+    have e1 : (ε : 𝓞 K5) = s * ζ ^ (k % 5) * φ ^ r0 * (β : 𝓞 K5) ^ 5 := by
+      rw [hε, hΦm, hk]; ring
+    have hd : lam ^ 3 ∣ (s : 𝓞 K5) * ζ ^ (k % 5) * φ ^ r0 * ((β : 𝓞 K5) ^ 5 - (c : 𝓞 K5) ^ 5) :=
+      dvd_mul_of_dvd_right (dvd_trans (pow_dvd_pow lam (by norm_num)) hc5) _
+    have h' : lam ^ 3 ∣ (s : 𝓞 K5) * ζ ^ (k % 5) * φ ^ r0 * (β : 𝓞 K5) ^ 5 - n := by
+      rw [← e1]; exact h
+    have h3 : lam ^ 3 ∣ ((s * a : ℤ) : 𝓞 K5) *
+        ((s : 𝓞 K5) * ζ ^ (k % 5) * φ ^ r0 * (c : 𝓞 K5) ^ 5 - n) := by
+      apply dvd_mul_of_dvd_right
+      have := dvd_sub h' hd
+      convert this using 1; ring
+    have h4 : lam ^ 3 ∣ ζ ^ (k % 5) * φ ^ r0 * ((b : 𝓞 K5) * 125) :=
+      dvd_mul_of_dvd_right (dvd_mul_of_dvd_right lam_pow_three_dvd_125 _) _
+    have h5 := dvd_add h3 h4
+    convert h5 using 1
+    have hab' : (a : 𝓞 K5) * (c : 𝓞 K5) ^ 5 + (b : 𝓞 K5) * 125 = 1 := by exact_mod_cast hab
+    have hs2' : (s : 𝓞 K5) * s = 1 := by exact_mod_cast hs2
+    push_cast
+    linear_combination (-(ζ ^ (k % 5) * φ ^ r0)) * hab' + (-(a : 𝓞 K5) * ζ ^ (k % 5) * φ ^ r0 *
+      (c : 𝓞 K5) ^ 5) * hs2'
+  obtain ⟨h5k, h5r⟩ := kummer_core hkey
+  have hk0 : k % 5 = 0 := by have := Nat.mod_lt k (by norm_num : 5 > 0); omega
+  have hr00 : r0 = 0 := by omega
+  rcases hs with rfl | rfl
+  · refine ⟨β, ?_⟩
+    apply Units.ext
+    rw [hε, hΦm, hk, hk0, hr00]; simp
+  · refine ⟨-β, ?_⟩
+    apply Units.ext
+    rw [hε, hΦm, hk, hk0, hr00]
+    simp only [Units.val_pow_eq_pow_val, Units.val_neg]
+    push_cast; ring
+
 end Kummer
 
 end OMA672Z5
