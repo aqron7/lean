@@ -113,4 +113,59 @@ lemma pow_five_congr {α : 𝓞 K5} {c : ℤ} (h : lam ∣ α - c) : lam ^ 5 ∣
   linear_combination (-(c : 𝓞 K5) ^ 4 * lam * β - 2 * (c : 𝓞 K5) ^ 3 * lam ^ 2 * β ^ 2
     - 2 * (c : 𝓞 K5) ^ 2 * lam ^ 3 * β ^ 3 - (c : 𝓞 K5) * lam ^ 4 * β ^ 4) * five_eq
 
+section Conj
+
+open NumberField.IsCMField
+
+instance oma_cm5 : NumberField.IsCMField K5 :=
+  IsCyclotomicExtension.Rat.isCMField K5 (S := {5}) ⟨5, rfl, by norm_num⟩
+
+/-- `ζ` as a unit. -/
+noncomputable abbrev ζu : (𝓞 K5)ˣ := (hζ5.toInteger_isPrimitiveRoot.isUnit (by norm_num)).unit
+
+lemma ζu_torsion : ζu ∈ NumberField.Units.torsion K5 :=
+  (CommGroup.mem_torsion _).mpr (isOfFinOrder_iff_pow_eq_one.mpr
+    ⟨5, by norm_num, by ext; simp [ζ_pow_five]⟩)
+
+/-- Complex conjugation on `𝓞 K5`. -/
+noncomputable abbrev σ := ringOfIntegersComplexConj K5
+
+lemma σ_ζ : σ ζ = ζ ^ 4 := by
+  apply RingOfIntegers.ext
+  rw [coe_ringOfIntegersComplexConj]
+  have h : complexConj K5 (ζ : K5) = (ζ : K5)⁻¹ := complexConj_torsion K5 ⟨ζu, ζu_torsion⟩
+  rw [h]
+  have h5 : (ζ : K5) ^ 5 = 1 := by exact_mod_cast congrArg (fun x : 𝓞 K5 => (x : K5)) ζ_pow_five
+  have hne : (ζ : K5) ≠ 0 := by rintro h0; rw [h0] at h5; norm_num at h5
+  push_cast
+  field_simp
+  linear_combination -h5
+
+/-- `5` is not a unit, via coordinates. -/
+lemma five_not_dvd_one : ¬ (5 : 𝓞 K5) ∣ 1 := by
+  rintro ⟨v, hv⟩
+  obtain ⟨a, b, c, e, rfl⟩ := exists_coord v
+  have := coord_eq (a := 1) (b := 0) (c := 0) (e := 0) (a' := 5 * a) (b' := 5 * b) (c' := 5 * c)
+    (e' := 5 * e) (by push_cast; linear_combination hv)
+  omega
+
+lemma lam_not_dvd_one : ¬ lam ∣ 1 := by
+  rintro ⟨t, ht⟩
+  obtain ⟨a, b, c, e, rfl⟩ := exists_coord t
+  have := coord_eq (a := 1) (b := 0) (c := 0) (e := 0) (a' := a + e) (b' := b - a + e)
+    (c' := c - b + e) (e' := 2 * e - c) (by push_cast; rw [ht]; linear_combination (-(e : 𝓞 K5)) * cyc)
+  omega
+
+lemma lam_dvd_int {m : ℤ} (h : lam ∣ (m : 𝓞 K5)) : (5 : ℤ) ∣ m := by
+  by_contra h5
+  have hp : Prime (5 : ℤ) := Int.prime_iff_natAbs_prime.mpr (by norm_num)
+  obtain ⟨a, b, hab⟩ := ((Prime.coprime_iff_not_dvd hp).mpr h5).symm
+  apply lam_not_dvd_one
+  have : (1 : 𝓞 K5) = a * m + b * 5 := by exact_mod_cast hab.symm
+  rw [this]
+  exact dvd_add (dvd_mul_of_dvd_right h _) (dvd_mul_of_dvd_right
+    (dvd_trans (dvd_pow_self lam (by norm_num)) lam_pow_four_dvd_five) _)
+
+end Conj
+
 end OMA672Z5
