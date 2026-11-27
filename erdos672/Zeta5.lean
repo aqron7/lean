@@ -956,4 +956,30 @@ theorem case_b {x y z : ℤ} {j : ℕ} (hj : 1 ≤ j) (h : x ^ 5 + y ^ 5 = 2 ^ j
 
 end CaseB
 
+section CasePrereq
+
+instance oma_fact5 : Fact (Nat.Prime 5) := ⟨by norm_num⟩
+
+lemma lam_prime : Prime lam := by
+  have h := hζ5.zeta_sub_one_prime'
+  have e : lam = -(hζ5.toInteger - 1) := by simp [lam, ζ]
+  rw [e]; exact h.neg
+
+lemma isUnit_of_mul {a b : 𝓞 K5} (h : a * b = 1) : IsUnit a :=
+  ⟨⟨a, b, h, by rw [mul_comm]; exact h⟩, rfl⟩
+
+/-- `1 - ζ^k = λ · (unit)` for `k = 1, 2, 3, 4`. -/
+lemma one_sub_pow_eq (k : ℕ) (hk : k = 1 ∨ k = 2 ∨ k = 3 ∨ k = 4) :
+    ∃ w : 𝓞 K5, IsUnit w ∧ 1 - ζ ^ k = lam * w := by
+  rcases hk with rfl | rfl | rfl | rfl
+  · exact ⟨1, isUnit_one, by ring⟩
+  · refine ⟨1 + ζ, isUnit_of_mul (b := -ζ ^ 3 - ζ) ?_, by ring⟩
+    linear_combination (-1 : 𝓞 K5) * cyc
+  · refine ⟨1 + ζ + ζ ^ 2, isUnit_of_mul (b := ζ ^ 3 + 1) ?_, by ring⟩
+    linear_combination ζ * cyc
+  · refine ⟨1 + ζ + ζ ^ 2 + ζ ^ 3, isUnit_of_mul (b := -ζ) ?_, by ring⟩
+    linear_combination (-1 : 𝓞 K5) * cyc
+
+end CasePrereq
+
 end OMA672Z5
