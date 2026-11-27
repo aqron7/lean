@@ -14,3 +14,15 @@ Unified view: a nontrivial H4 solution is a rational point (m/b^2, d/b^5) on Y^2
 8. Denes case lambda | z: descent on v_lambda(z) as in Mathlib FLT/Three.lean.
 9. Same for 8 z^5 (2 | x+y with v_2 = 3).
 10. Assemble with the reduction file into a full proof of H4.
+
+## Denes 1952 (Acta Math. 88, 241-251), read 2026-11-27
+Satz 7 (c = p1^u1...ps^us, all f_i even, sum 1/f_i <= (l-3)/(2(l-1)), some p_j^(l-1) != 1 mod l^2) and
+Satz 9 (c = 2): x^l + y^l = c z^l, xyz != 0,1, unsolvable. For l = 5, p = 2: f = 4 (even), 1/4 <= 1/4,
+2^4 = 16 != 1 mod 25. Since c = 8 = 2^3 is also a power of 2, Satz 7 covers BOTH H4 equations.
+Proof (Satz 4) splits into three cases:
+ a) 5 does not divide x y z: Satz 1, ideal descent using 5th power residue symbols, the unit
+    Theta_1 (rank 1 for l = 5), and Vandiver's 1931 congruence rho_i = rho_{l-i} mod l^(l-1).
+ b) 5 | y: Satz 3/6: x + zeta y = eps rho^5 forces zeta to be a 5th power mod each prime q | c.
+    For q = (2) (inert, residue field F_16, order 15): zeta has order 5, not a 5th power. Finite check.
+ c) 5 | z: Maillet's lemma (Acta Math. 24, 1901, 247-256), not yet obtained.
+Dependencies still to source: Vandiver PNAS 17 (1931) 661-673; Maillet Acta Math 24 (1901).
