@@ -62,3 +62,20 @@ with a non-fifth-power unit, and closing the descent needs that unit to be a fif
 uses Vandiver's congruence (explicit reciprocity for 5th power residue symbols). Not available in Mathlib.
 Alternative: x^5 + y^5 = 2z^5 is equivalent to rational points on the genus 2 curve w^2 = 5s(s^5 + 8)
 (s = (x+y)/z). A rank-0 Jacobian proof would need a 2-descent over Q(2^(1/5)) (its unit group), also large.
+
+## Case a: real-family descent and the exact missing congruence (2026-11-27, scripts in casea/)
+Family F_R: X^5 + Y^5 = 2^j eps Z^5, X, Y, Z in Z[phi] coprime, lambda not dividing XYZ (contains the integer case).
+- Mod 2: X/Y mod 2 lies in F4 and must be a 5th root of 1, so 2 | X + Y and X + zeta Y = X*lambda (mod 2).
+  F4* is inside (F16*)^5, so the unit zeta^k phi^m is congruent to lambda mod 5th powers in F16. No reciprocity needed.
+- Mod lambda^5 (ex2.py, all X, Y mod 5 sqrt5): the pairs (1,4) and (2,3) are BOTH consistent only for k1 = 3, k2 = 1,
+  so x + zeta y = zeta^3 phi^m rho^5 holds for real X, Y too.
+- Three-term relation: rho^5 + (sigma rho)^5 = 2^j eps' W^5 with eps' real (family F').
+- F' back to F_R: B_i = rho + zeta^i sigma rho, zeta^2 B_1 and zeta^3 B_4 real, giving R1^5 + delta R4^5 = 2^j eps'' R0^5.
+  Need delta to be a 5th power. ex5.py: v_lambda(rho - sigma rho) is 1 or >= 3, and delta is a 5th power EXACTLY when
+  v >= 3. Multiplying rho by zeta^a can always make v >= 3, but it also moves which B_i is divisible by 2.
+- So the whole of case a reduces to ONE compatibility statement (Vandiver's congruence for l = 5):
+  with gamma = rho / sigma rho, the 5th roots of unity that gamma is congruent to mod 2 and mod lambda^2 coincide.
+  CRT shows this is independent of all local data, so it needs a global reciprocity law (it uses that x + zeta^2 y
+  is also a unit times a 5th power). Candidates: Eisenstein reciprocity plus Kummer's supplementary law for l = 5,
+  or the Hilbert symbol product formula. Vandiver, Trans. AMS 31 (1929) 613-642, p. 633 has the derivation;
+  ams.org is behind a Cloudflare check, so it has to be uploaded manually.
