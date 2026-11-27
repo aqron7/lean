@@ -980,6 +980,54 @@ lemma one_sub_pow_eq (k : ℕ) (hk : k = 1 ∨ k = 2 ∨ k = 3 ∨ k = 4) :
   · refine ⟨1 + ζ + ζ ^ 2 + ζ ^ 3, isUnit_of_mul (b := -ζ) ?_, by ring⟩
     linear_combination (-1 : 𝓞 K5) * cyc
 
+lemma u5_isUnit : IsUnit u5 := by
+  obtain ⟨w2, hw2, e2⟩ := one_sub_pow_eq 2 (by norm_num)
+  obtain ⟨w3, hw3, e3⟩ := one_sub_pow_eq 3 (by norm_num)
+  obtain ⟨w4, hw4, e4⟩ := one_sub_pow_eq 4 (by norm_num)
+  have h2 : w2 = 1 + ζ := mul_left_cancel₀ lam_ne_zero (by rw [← e2]; ring)
+  have h3 : w3 = 1 + ζ + ζ ^ 2 := mul_left_cancel₀ lam_ne_zero (by rw [← e3]; ring)
+  have h4 : w4 = 1 + ζ + ζ ^ 2 + ζ ^ 3 := mul_left_cancel₀ lam_ne_zero (by rw [← e4]; ring)
+  rw [h2] at hw2; rw [h3] at hw3; rw [h4] at hw4
+  exact (hw2.mul hw3).mul hw4
+
+lemma zmod5_pow_four : ∀ a : ZMod 5, a ≠ 0 → a ^ 4 = 1 := by decide
+
+/-- Normalisation: every `x` prime to `λ` is, after multiplying by a power of `ζ`,
+congruent to a rational integer modulo `λ²`. -/
+lemma normalize {x : 𝓞 K5} (hx : ¬ lam ∣ x) : ∃ k : ℕ, ∃ a : ℤ, lam ^ 2 ∣ ζ ^ k * x - a := by
+  obtain ⟨a0, ha0⟩ := exists_int_congr x
+  obtain ⟨t, ht⟩ := ha0
+  obtain ⟨b, hb⟩ := exists_int_congr t
+  have ha05 : ¬ (5 : ℤ) ∣ a0 := by
+    intro h5; apply hx
+    have := dvd_add (⟨t, ht⟩ : lam ∣ x - a0) (by simpa using lam_pow_dvd_of_five_dvd h5 (j := 1) (by norm_num))
+    simpa using this
+  set k : ℕ := ((b * a0 ^ 3) % 5).toNat with hk
+  have hkmod : (5 : ℤ) ∣ b - k * a0 := by
+    have hk' : ((k : ℤ) : ZMod 5) = ((b * a0 ^ 3 : ℤ) : ZMod 5) := by
+      rw [hk, Int.toNat_of_nonneg (Int.emod_nonneg _ (by norm_num))]
+      exact ZMod.intCast_mod _ _
+    have ha : ((a0 : ℤ) : ZMod 5) ≠ 0 := by
+      intro h0; exact ha05 (by exact_mod_cast (ZMod.intCast_zmod_eq_zero_iff_dvd a0 5).mp h0)
+    have h0 : ((b - k * a0 : ℤ) : ZMod 5) = 0 := by
+      push_cast at hk' ⊢
+      rw [hk', mul_assoc, ← pow_succ, zmod5_pow_four _ ha]; ring
+    exact_mod_cast (ZMod.intCast_zmod_eq_zero_iff_dvd _ 5).mp h0
+  obtain ⟨P, hP⟩ := one_sub_pow k
+  refine ⟨k, a0, ?_⟩
+  obtain ⟨b', hb'⟩ := hkmod
+  obtain ⟨t', ht'⟩ := hb
+  have hlb : lam ∣ ((b - k * a0 : ℤ) : 𝓞 K5) :=
+    by simpa using lam_pow_dvd_of_five_dvd (⟨b', hb'⟩ : (5 : ℤ) ∣ b - k * a0) (j := 1) (by norm_num)
+  obtain ⟨m, hm⟩ := hlb
+  have hx' : x = a0 + lam * (b + lam * t') := by linear_combination ht + lam * ht'
+  set C : 𝓞 K5 := ((k * (k - 1) / 2 : ℕ) : 𝓞 K5)
+  refine ⟨m + (t' - k * b - k * lam * t' + C * a0 + C * b * lam + C * lam ^ 2 * t' + lam * P * a0
+    + lam ^ 2 * P * b + lam ^ 3 * P * t'), ?_⟩
+  rw [ζ_eq, hP, hx']
+  push_cast at hm
+  linear_combination lam * hm
+
 end CasePrereq
 
 end OMA672Z5
