@@ -10,8 +10,8 @@ Unified view: a nontrivial H4 solution is a rational point (m/b^2, d/b^5) on Y^2
 4. DONE (two_prime, zeta_not_fifth_mod_two) 2 is prime (inert): O/2 = F_16.
 5. DONE (unit_form in Zeta5.lean) Units: every unit = zeta^k * (real unit); real units of Z[phi] are +-phi^m (descent on a + b phi).
 6. DONE (kummer_lemma, mod lambda^3 suffices) Kummer lemma for p=5: a unit congruent to a rational integer mod lambda^5 is a fifth power (finite check on phi^m mod 5).
-7. Denes case lambda does not divide z: x + zeta y = unit * alpha^5 for each conjugate; compare mod lambda^5.
-8. Denes case lambda | z: descent on v_lambda(z) as in Mathlib FLT/Three.lean.
+7. OPEN (case a) Denes case 5 does not divide xyz: x + zeta y = unit * alpha^5 for each conjugate; compare mod lambda^5.
+8. DONE case b (5 | y): Zeta5.case_b. DONE case c (5 | z): Zeta5.maillet + Zeta5.case_c, any 2^j.
 9. Same for 8 z^5 (2 | x+y with v_2 = 3).
 10. Assemble with the reduction file into a full proof of H4.
 
@@ -53,3 +53,12 @@ for c = 2). Dirichlet's elementary route does not bypass case a.
 Status of case a (5 does not divide xyz): Denes Satz 1 needs Vandiver's rho_1 = rho_4 (mod lambda^4), derived
 from power characters of units = Kummer's explicit reciprocity formula. This is the remaining hard core.
 Note: the trivial solution x = y = z = 1 lies in case a, so case a cannot be settled by congruences alone.
+
+## Case a analysis (2026-11-27)
+Kummer first-case step (provable with existing Zeta5 lemmas): x + zeta y = zeta^3 phi^m alpha^5 and x = y (mod 5).
+Three-term relation (zeta^4 - zeta)(x+y) + (1 - zeta^4)(x + zeta y) + (zeta - 1)(x + zeta^4 y) = 0 gives
+alpha^5 + (sigma alpha)^5 = -2 phi^(1-m) a^5, a in Z (x + y = 2a^5, resp. 8a^5). This is the same equation over O
+with a non-fifth-power unit, and closing the descent needs that unit to be a fifth power: exactly where Denes
+uses Vandiver's congruence (explicit reciprocity for 5th power residue symbols). Not available in Mathlib.
+Alternative: x^5 + y^5 = 2z^5 is equivalent to rational points on the genus 2 curve w^2 = 5s(s^5 + 8)
+(s = (x+y)/z). A rank-0 Jacobian proof would need a 2-descent over Q(2^(1/5)) (its unit group), also large.
