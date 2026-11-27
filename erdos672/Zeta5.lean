@@ -427,4 +427,58 @@ theorem unit_form (u : (𝓞 K5)ˣ) :
 
 end Golden
 
+section Kummer
+
+/-- The unit `v` with `σ λ = λ v`. -/
+noncomputable abbrev v5 : 𝓞 K5 := 1 + ζ + ζ ^ 2 + ζ ^ 3
+
+lemma φ_eq_three : φ = 3 - v5 * lam ^ 2 := by
+  linear_combination ζ_pow_five
+
+lemma ζ_eq : ζ = 1 - lam := by ring
+
+lemma one_sub_pow (k : ℕ) : ∃ P : 𝓞 K5,
+    (1 - lam) ^ k = 1 - (k : 𝓞 K5) * lam + ((k * (k - 1) / 2 : ℕ) : 𝓞 K5) * lam ^ 2 + lam ^ 3 * P := by
+  induction k with
+  | zero => exact ⟨0, by simp⟩
+  | succ k ih =>
+    obtain ⟨P, hP⟩ := ih
+    refine ⟨P * (1 - lam) - ((k * (k - 1) / 2 : ℕ) : 𝓞 K5), ?_⟩
+    have hk : ((k + 1) * (k + 1 - 1) / 2 : ℕ) = (k * (k - 1) / 2 : ℕ) + k := by
+      rcases Nat.even_or_odd k with ⟨j, rfl⟩ | ⟨j, rfl⟩
+      · rw [show (j + j + 1) * (j + j + 1 - 1) = 2 * ((j + j + 1) * j) by
+            rw [show j + j + 1 - 1 = j + j by omega]; ring,
+          show (j + j) * (j + j - 1) = 2 * (j * (j + j - 1)) by ring]
+        rw [Nat.mul_div_cancel_left _ (by norm_num), Nat.mul_div_cancel_left _ (by norm_num)]
+        rcases Nat.eq_zero_or_pos j with rfl | hj
+        · simp
+        · have : j + j - 1 + 1 = j + j := by omega
+          nlinarith [this]
+      · rw [show (2 * j + 1 + 1) * (2 * j + 1 + 1 - 1) = 2 * ((j + 1) * (2 * j + 1)) by
+            rw [show 2 * j + 1 + 1 - 1 = 2 * j + 1 by omega]; ring,
+          show (2 * j + 1) * (2 * j + 1 - 1) = 2 * ((2 * j + 1) * j) by
+            rw [show 2 * j + 1 - 1 = 2 * j by omega]; ring]
+        rw [Nat.mul_div_cancel_left _ (by norm_num), Nat.mul_div_cancel_left _ (by norm_num)]
+        ring
+    rw [pow_succ, hP, hk]
+    push_cast
+    ring
+
+lemma three_sub_pow (r : ℕ) : ∃ Q : 𝓞 K5,
+    (3 - v5 * lam ^ 2) ^ r = 3 ^ r - (r : 𝓞 K5) * 3 ^ (r - 1) * v5 * lam ^ 2 + lam ^ 3 * Q := by
+  induction r with
+  | zero => exact ⟨0, by simp⟩
+  | succ r ih =>
+    obtain ⟨Q, hQ⟩ := ih
+    refine ⟨Q * (3 - v5 * lam ^ 2) + (r : 𝓞 K5) * 3 ^ (r - 1) * v5 ^ 2 * lam, ?_⟩
+    rw [pow_succ, hQ]
+    rcases Nat.eq_zero_or_pos r with rfl | hr
+    · simp; ring
+    · obtain ⟨r', rfl⟩ : ∃ r', r = r' + 1 := ⟨r - 1, by omega⟩
+      simp only [Nat.add_sub_cancel]
+      push_cast
+      ring
+
+end Kummer
+
 end OMA672Z5
