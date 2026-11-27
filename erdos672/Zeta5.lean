@@ -290,4 +290,141 @@ lemma unit_decomp (u : (𝓞 K5)ˣ) : ∃ k : ℕ, ∃ w : 𝓞 K5, (u : 𝓞 K5
 
 end UnitDecomp
 
+section Golden
+
+/-- Pairs `(a, c)` representing `±φ^m`. -/
+inductive Reach : ℤ → ℤ → Prop
+  | one : Reach 1 0
+  | neg {a c} : Reach a c → Reach (-a) (-c)
+  | mulφ {a c} : Reach a c → Reach c (a + c)
+  | mulψ {a c} : Reach a c → Reach (c - a) a
+
+lemma Reach.of_mulφ {a c : ℤ} (h : Reach c (a + c)) : Reach a c := by
+  have := h.mulψ
+  simpa using this
+
+lemma Reach.of_mulψ {a c : ℤ} (h : Reach (c - a) a) : Reach a c := by
+  have := h.mulφ
+  simpa using this
+
+theorem reach_of_norm (N : ℕ) : ∀ a c : ℤ, a.natAbs + c.natAbs = N →
+    (a ^ 2 + a * c - c ^ 2 = 1 ∨ a ^ 2 + a * c - c ^ 2 = -1) → Reach a c := by
+  induction N using Nat.strong_induction_on with
+  | _ N ih =>
+  intro a c hN hn
+  rcases eq_or_ne c 0 with rfl | hc
+  · have : a = 1 ∨ a = -1 := by
+      rcases hn with h | h
+      · have h2 : (a - 1) * (a + 1) = 0 := by linear_combination h
+        rcases mul_eq_zero.mp h2 with h | h
+        · left; linarith
+        · right; linarith
+      · nlinarith [sq_nonneg a]
+    rcases this with rfl | rfl
+    · exact Reach.one
+    · exact Reach.one.neg
+  rcases eq_or_ne a 0 with rfl | ha
+  · -- c = ±1, and (0, ±1) = ±φ
+    have : c = 1 ∨ c = -1 := by
+      rcases hn with h | h
+      · nlinarith [sq_nonneg c]
+      · have h2 : (c - 1) * (c + 1) = 0 := by linear_combination -h
+        rcases mul_eq_zero.mp h2 with h | h
+        · left; linarith
+        · right; linarith
+    rcases this with rfl | rfl
+    · exact Reach.one.mulφ |>.of_mulφ |>.mulφ
+    · exact (Reach.one.mulφ).neg
+  -- generic step
+  rcases le_or_gt 0 (a * c) with hs | hs
+  · -- same sign: multiply by φ⁻¹, new pair (c - a, a)
+    apply Reach.of_mulψ
+    apply ih ((c - a).natAbs + a.natAbs) _ (c - a) a rfl
+    · rcases hn with h | h
+      · right; linear_combination -h
+      · left; linear_combination -h
+    · rw [← hN]
+      have hac : |c - a| < |c| := by
+        rcases lt_or_gt_of_ne ha with ha' | ha' <;> rcases lt_or_gt_of_ne hc with hc' | hc'
+        · rw [abs_lt]; constructor <;> [skip; skip] <;>
+            rcases hn with h | h <;> nlinarith [abs_of_neg hc']
+        · nlinarith
+        · nlinarith
+        · rw [abs_lt]; constructor <;> rcases hn with h | h <;> nlinarith [abs_of_pos hc']
+      rw [Int.abs_eq_natAbs, Int.abs_eq_natAbs] at hac
+      omega
+  · -- opposite signs: multiply by φ, new pair (c, a + c)
+    apply Reach.of_mulφ
+    apply ih (c.natAbs + (a + c).natAbs) _ c (a + c) rfl
+    · rcases hn with h | h
+      · right; linear_combination -h
+      · left; linear_combination -h
+    · rw [← hN]
+      have hac : |a + c| < |a| := by
+        rcases lt_or_gt_of_ne ha with ha' | ha' <;> rcases lt_or_gt_of_ne hc with hc' | hc'
+        · nlinarith
+        · rw [abs_lt]; constructor <;> rcases hn with h | h <;> nlinarith [abs_of_neg ha']
+        · rw [abs_lt]; constructor <;> rcases hn with h | h <;> nlinarith [abs_of_pos ha']
+        · nlinarith
+      rw [Int.abs_eq_natAbs, Int.abs_eq_natAbs] at hac
+      omega
+
+
+/-- The golden unit `Φ`. -/
+noncomputable abbrev Φ : (𝓞 K5)ˣ := φ_isUnit.unit
+
+lemma Φ_inv : ((Φ⁻¹ : (𝓞 K5)ˣ) : 𝓞 K5) = φ - 1 := Units.inv_eq_of_mul_eq_one_right φ_mul
+
+lemma reach_val {a c : ℤ} (h : Reach a c) :
+    ∃ m : ℤ, ∃ s : ℤ, (s = 1 ∨ s = -1) ∧ (a : 𝓞 K5) + c * φ = s * ((Φ ^ m : (𝓞 K5)ˣ) : 𝓞 K5) := by
+  induction h with
+  | one => exact ⟨0, 1, Or.inl rfl, by simp⟩
+  | neg _ ih =>
+    obtain ⟨m, s, hs, he⟩ := ih
+    refine ⟨m, -s, ?_, ?_⟩
+    · rcases hs with rfl | rfl <;> simp
+    · push_cast; linear_combination -he
+  | mulφ _ ih =>
+    obtain ⟨m, s, hs, he⟩ := ih
+    refine ⟨m + 1, s, hs, ?_⟩
+    rw [zpow_add_one, Units.val_mul, ← mul_assoc, ← he]
+    push_cast
+    show _ = _ * φ
+    linear_combination -(↑_ : 𝓞 K5) * φ_sq
+  | mulψ _ ih =>
+    obtain ⟨m, s, hs, he⟩ := ih
+    refine ⟨m - 1, s, hs, ?_⟩
+    rw [zpow_sub_one, Units.val_mul, ← mul_assoc, ← he, Φ_inv]
+    push_cast
+    linear_combination (-(↑_ : 𝓞 K5)) * φ_sq
+
+/-- Every unit of `ℤ[ζ₅]` is `±ζ^k φ^m`. -/
+theorem unit_form (u : (𝓞 K5)ˣ) :
+    ∃ k : ℕ, ∃ m : ℤ, ∃ s : ℤ, (s = 1 ∨ s = -1) ∧ (u : 𝓞 K5) = s * ζ ^ k * ((Φ ^ m : (𝓞 K5)ˣ) : 𝓞 K5) := by
+  obtain ⟨k, w, hu, hw⟩ := unit_decomp u
+  set w' : 𝓞 K5 := ζ ^ k * ((u⁻¹ : (𝓞 K5)ˣ) : 𝓞 K5) with hw'
+  have hww' : w * w' = 1 := by
+    have h5 : ζ ^ (5 * k) = 1 := by rw [pow_mul, ζ_pow_five, one_pow]
+    have : w = ζ ^ (4 * k) * u := by
+      rw [hu, ← mul_assoc, ← pow_add, show 4 * k + k = 5 * k by ring, h5, one_mul]
+    rw [hw', this]
+    calc ζ ^ (4 * k) * (u : 𝓞 K5) * (ζ ^ k * ((u⁻¹ : (𝓞 K5)ˣ) : 𝓞 K5))
+        = ζ ^ (4 * k + k) * ((u : 𝓞 K5) * ((u⁻¹ : (𝓞 K5)ˣ) : 𝓞 K5)) := by ring
+      _ = 1 := by rw [show 4 * k + k = 5 * k by ring, h5, ← Units.val_mul, mul_inv_cancel,
+          Units.val_one, one_mul]
+  have hw'r : σ w' = w' := by
+    have h1 : σ w * σ w' = 1 := by rw [← map_mul, hww', map_one]
+    rw [hw] at h1
+    have hw0 : w ≠ 0 := by rintro rfl; simp at hww'
+    exact mul_left_cancel₀ hw0 (h1.trans hww'.symm)
+  obtain ⟨a, c, rfl⟩ := real_form hw
+  obtain ⟨a', c', hac'⟩ := real_form hw'r
+  rw [hac'] at hww'
+  have hn := real_unit_norm hww'
+  have hr := reach_of_norm _ a c rfl hn
+  obtain ⟨m, s, hs, he⟩ := reach_val hr
+  exact ⟨k, m, s, hs, by rw [hu, he]; ring⟩
+
+end Golden
+
 end OMA672Z5
