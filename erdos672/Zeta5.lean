@@ -86,4 +86,31 @@ lemma coord_eq {a b c e a' b' c' e' : ℤ}
     (by push_cast; linear_combination h)
   omega
 
+/-- `λ = 1 - ζ`, the prime above 5. -/
+noncomputable abbrev lam : 𝓞 K5 := 1 - ζ
+
+/-- The unit cofactor in `5 = λ⁴ u`. -/
+noncomputable abbrev u5 : 𝓞 K5 := (1 + ζ) * (1 + ζ + ζ ^ 2) * (1 + ζ + ζ ^ 2 + ζ ^ 3)
+
+lemma five_eq : lam ^ 4 * u5 = 5 := by
+  linear_combination (ζ ^ 6 - 2 * ζ ^ 5 + ζ ^ 3 + 3 * ζ - 4) * cyc
+
+lemma lam_pow_four_dvd_five : lam ^ 4 ∣ (5 : 𝓞 K5) := ⟨u5, five_eq.symm⟩
+
+/-- Every element is congruent to a rational integer modulo `λ`. -/
+lemma exists_int_congr (x : 𝓞 K5) : ∃ c : ℤ, lam ∣ x - c := by
+  obtain ⟨a, b, c, e, rfl⟩ := exists_coord x
+  refine ⟨a + b + c + e, -(b + c * (1 + ζ) + e * (1 + ζ + ζ ^ 2)), ?_⟩
+  push_cast; ring
+
+/-- If `α ≡ c (mod λ)` then `α⁵ ≡ c⁵ (mod λ⁵)`. -/
+lemma pow_five_congr {α : 𝓞 K5} {c : ℤ} (h : lam ∣ α - c) : lam ^ 5 ∣ α ^ 5 - (c : 𝓞 K5) ^ 5 := by
+  obtain ⟨β, hβ⟩ := h
+  have hα : α = c + lam * β := by linear_combination hβ
+  refine ⟨c ^ 4 * u5 * β + 2 * c ^ 3 * u5 * lam * β ^ 2 + 2 * c ^ 2 * u5 * lam ^ 2 * β ^ 3
+    + c * u5 * lam ^ 3 * β ^ 4 + β ^ 5, ?_⟩
+  rw [hα]
+  linear_combination (-(c : 𝓞 K5) ^ 4 * lam * β - 2 * (c : 𝓞 K5) ^ 3 * lam ^ 2 * β ^ 2
+    - 2 * (c : 𝓞 K5) ^ 2 * lam ^ 3 * β ^ 3 - (c : 𝓞 K5) * lam ^ 4 * β ^ 4) * five_eq
+
 end OMA672Z5
