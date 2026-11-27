@@ -161,4 +161,260 @@ theorem good_t1 {j : ℕ} (hj : j = 1 ∨ j = 3) {X Y : 𝓞 K5} (hX : σ X = X)
 
 end Stage
 
+section StageP
+
+lemma σ_unit_inv {u : (𝓞 K5)ˣ} (h : σ (u : 𝓞 K5) = u) : σ ((u⁻¹ : (𝓞 K5)ˣ) : 𝓞 K5) = (u⁻¹ : (𝓞 K5)ˣ) := by
+  have h1 : σ (u : 𝓞 K5) * σ ((u⁻¹ : (𝓞 K5)ˣ) : 𝓞 K5) = 1 := by
+    rw [← map_mul, Units.mul_inv, map_one]
+  rw [h] at h1
+  calc σ ((u⁻¹ : (𝓞 K5)ˣ) : 𝓞 K5) = (u⁻¹ : (𝓞 K5)ˣ) * (u * σ ((u⁻¹ : (𝓞 K5)ˣ) : 𝓞 K5)) := by
+        rw [← mul_assoc, Units.inv_mul, one_mul]
+    _ = _ := by rw [h1, mul_one]
+
+lemma lam_dvd_mul_unit {u : 𝓞 K5} (hu : IsUnit u) {x : 𝓞 K5} (h : lam ∣ u * x) : lam ∣ x := by
+  obtain ⟨U, rfl⟩ := hu; exact (Units.dvd_mul_left).mp h
+
+lemma lam3_dvd_125 : lam ^ 3 ∣ (125 : 𝓞 K5) := by
+  have : (125 : 𝓞 K5) = (lam ^ 4 * u5) ^ 3 := by rw [five_eq]; norm_num
+  rw [this]; exact ⟨lam ^ 9 * u5 ^ 3, by ring⟩
+
+/-- The second stage: from `ρ⁵ + (σρ)⁵ = E' 2^j W⁵` to a smaller real solution. -/
+theorem stageP {j : ℕ} (hj : j = 1 ∨ j = 3) {ρ W : 𝓞 K5} {c : ℤ} {E' : (𝓞 K5)ˣ}
+    (hρc : lam ^ 2 ∣ ρ - c) (hρ3 : (2 : 𝓞 K5) ∣ ρ ^ 3 - 1) (hcop : IsCoprime ρ (σ ρ))
+    (hlW : ¬ lam ∣ W) (heq : ρ ^ 5 + (σ ρ) ^ 5 = E' * 2 ^ j * W ^ 5) :
+    ∃ X' Y' Z' : 𝓞 K5, ∃ E'' : (𝓞 K5)ˣ, σ X' = X' ∧ σ Y' = Y' ∧ IsCoprime X' Y' ∧
+      ¬ lam ∣ X' ∧ ¬ lam ∣ Y' ∧ ¬ lam ∣ Z' ∧ X' ^ 5 + Y' ^ 5 = E'' * 2 ^ j * Z' ^ 5 ∧
+      Ideal.absNorm (Ideal.span {Z'}) ≤ Ideal.absNorm (Ideal.span {W}) ∧
+      (IsUnit (X' + ζ * Y') → IsUnit ρ) := by
+  set y := σ ρ with hy
+  have hσy : σ y = ρ := σσ ρ
+  have hz5 := ζ_pow_five
+  -- `2 ∣ ρ + σρ`
+  have h2d : (2 : 𝓞 K5) ∣ ρ - y := by
+    have h4 := frob4 ρ
+    have : ρ - y = (ρ ^ 4 - y) - ρ * (ρ ^ 3 - 1) := by ring
+    rw [this]; exact dvd_sub h4 (dvd_mul_of_dvd_right hρ3 _)
+  have h2B0 : (2 : 𝓞 K5) ∣ ρ + y := by
+    have := dvd_add h2d (dvd_mul_right 2 y); convert this using 1; ring
+  have hlB0 : ¬ lam ∣ ρ + y := not_lam_sum hlW heq
+  have hcopall := all_coprime hcop hlB0
+  have hodd : ∀ i, 1 ≤ i → i < 5 → ¬ (2 : 𝓞 K5) ∣ ρ + ζ ^ i * y := by
+    intro i hi1 hi h
+    obtain ⟨w, hw, hw'⟩ := one_sub_pow_eq i (by omega)
+    have : (2 : 𝓞 K5) ∣ lam * (-w) * y := by
+      have := dvd_sub h h2B0
+      convert this using 1; linear_combination y * hw'
+    have h2y := two_not_dvd_lam_mul hw.neg this
+    have h2ρ : (2 : 𝓞 K5) ∣ ρ := by
+      have := dvd_sub h2B0 h2y; simpa using this
+    exact two_prime.not_unit (hcop.isUnit_of_dvd' h2ρ h2y)
+  have hW0 : W ≠ 0 := fun h => hlW (h ▸ dvd_zero _)
+  obtain ⟨e0, e1, e2, e3, e4, S0, s1, s2, s3, s4, hB0, hB1, hB2, hB3, hB4, hass⟩ :=
+    five_factor hW0 hcopall hodd heq
+  -- realify `ζ² B₁` and `ζ³ B₄`
+  have hσ1 : σ (ζ ^ 2 * (ρ + ζ * y)) = ζ ^ 2 * (ρ + ζ * y) := by
+    rw [map_mul, map_add, map_mul, σ_zeta_pow, σ_ζ, hσy]
+    linear_combination (ζ ^ 3 * y + ρ * ζ ^ 2 * (ζ ^ 5 + 1)) * hz5
+  have hσ4 : σ (ζ ^ 3 * (ρ + ζ ^ 4 * y)) = ζ ^ 3 * (ρ + ζ ^ 4 * y) := by
+    rw [map_mul, map_add, map_mul, σ_zeta_pow, σ_zeta_pow, hσy]
+    linear_combination (ζ ^ 7 * y + ρ * ζ ^ 3 * (ζ ^ 20 + ζ ^ 15 + ζ ^ 10 + ζ ^ 5 + 1)) * hz5
+  have hlB : ∀ i, ¬ lam ∣ ρ + ζ ^ i * y := lam_factor hlB0
+  have hzu : ∀ k : ℕ, ((ζu ^ k : (𝓞 K5)ˣ) : 𝓞 K5) = ζ ^ k := by
+    intro k; rw [Units.val_pow_eq_pow_val, IsUnit.unit_spec]
+  have hw1 : ζ ^ 2 * (ρ + ζ * y) = ((ζu ^ 2 * e1 : (𝓞 K5)ˣ) : 𝓞 K5) * s1 ^ 5 := by
+    rw [Units.val_mul, hzu, hB1]; ring
+  have hw4 : ζ ^ 3 * (ρ + ζ ^ 4 * y) = ((ζu ^ 3 * e4 : (𝓞 K5)ˣ) : 𝓞 K5) * s4 ^ 5 := by
+    rw [Units.val_mul, hzu, hB4]; ring
+  have hB1ne : ζ ^ 2 * (ρ + ζ * y) ≠ 0 := by
+    intro h; apply hlB 1; rw [pow_one]
+    have : ρ + ζ * y = 0 := (mul_eq_zero.mp h).resolve_left (pow_ne_zero _ ζ_ne_zero)
+    rw [this]; exact dvd_zero _
+  have hB4ne : ζ ^ 3 * (ρ + ζ ^ 4 * y) ≠ 0 := by
+    intro h; apply hlB 4
+    have : ρ + ζ ^ 4 * y = 0 := (mul_eq_zero.mp h).resolve_left (pow_ne_zero _ ζ_ne_zero)
+    rw [this]; exact dvd_zero _
+  obtain ⟨hu1σ, R1, hR1σ, hR1⟩ := realify hσ1 hB1ne hw1
+  obtain ⟨hu4σ, R4, hR4σ, hR4⟩ := realify hσ4 hB4ne hw4
+  generalize ζu ^ 2 * e1 = u1 at hu1σ hR1
+  generalize ζu ^ 3 * e4 = u4 at hu4σ hR4
+  -- Kummer step
+  have hρy : lam ^ 2 ∣ ρ - y := by
+    have := dvd_sub hρc (lam2_conj hρc); convert this using 1; ring
+  have hk3 : lam ^ 3 ∣ (u4 : 𝓞 K5) * R4 ^ 5 - u1 * R1 ^ 5 := by
+    obtain ⟨t, ht⟩ := hρy
+    refine ⟨-ζ ^ 2 * t, ?_⟩
+    rw [← hR4, ← hR1]
+    linear_combination (ζ ^ 2 * y) * hz5 - (ζ ^ 2 * lam) * ht
+  obtain ⟨d1, hd1⟩ := exists_int_congr R1
+  obtain ⟨d4, hd4⟩ := exists_int_congr R4
+  have hk3' : lam ^ 3 ∣ (u4 : 𝓞 K5) * (d4 : 𝓞 K5) ^ 5 - u1 * (d1 : 𝓞 K5) ^ 5 := by
+    have e1' := dvd_trans (pow_dvd_pow lam (by norm_num : 3 ≤ 5)) (pow_five_congr hd1)
+    have e4' := dvd_trans (pow_dvd_pow lam (by norm_num : 3 ≤ 5)) (pow_five_congr hd4)
+    have := dvd_add (dvd_sub hk3 (dvd_mul_of_dvd_right e4' (u4 : 𝓞 K5)))
+      (dvd_mul_of_dvd_right e1' (u1 : 𝓞 K5))
+    convert this using 1; ring
+  obtain ⟨δ, hδ⟩ : ∃ δ : (𝓞 K5)ˣ, δ = u4 * u1⁻¹ := ⟨_, rfl⟩
+  have hδd : lam ^ 3 ∣ (δ : 𝓞 K5) * (d4 : 𝓞 K5) ^ 5 - (d1 : 𝓞 K5) ^ 5 := by
+    have := dvd_mul_of_dvd_right hk3' ((u1⁻¹ : (𝓞 K5)ˣ) : 𝓞 K5)
+    convert this using 1
+    rw [hδ, Units.val_mul]
+    have : ((u1⁻¹ : (𝓞 K5)ˣ) : 𝓞 K5) * u1 = 1 := Units.inv_mul _
+    linear_combination ((d1 : 𝓞 K5) ^ 5) * this
+  have hlR4 : ¬ lam ∣ R4 := by
+    intro h; apply hlB 4
+    have : lam ∣ ζ ^ 3 * (ρ + ζ ^ 4 * y) := by
+      rw [hR4]; exact dvd_mul_of_dvd_right (dvd_pow h (by norm_num)) _
+    exact lam_dvd_mul_unit ((ζ_prim.isUnit (by norm_num)).pow 3) this
+  have hlR1 : ¬ lam ∣ R1 := by
+    intro h; apply hlB 1; rw [pow_one]
+    have : lam ∣ ζ ^ 2 * (ρ + ζ * y) := by
+      rw [hR1]; exact dvd_mul_of_dvd_right (dvd_pow h (by norm_num)) _
+    exact lam_dvd_mul_unit ((ζ_prim.isUnit (by norm_num)).pow 2) this
+  have h5d4 : ¬ (5 : ℤ) ∣ d4 := by
+    intro h5; apply hlR4
+    have := dvd_add hd4 (by simpa using lam_pow_dvd_of_five_dvd h5 (j := 1) (by norm_num))
+    simpa using this
+  have hp5 : Prime (5 : ℤ) := Int.prime_iff_natAbs_prime.mpr (by norm_num)
+  obtain ⟨xx, zz, hxz⟩ : IsCoprime (d4 ^ 5) ((5 : ℤ) ^ 3) :=
+    (((Prime.coprime_iff_not_dvd hp5).mpr h5d4).symm.pow)
+  have hxz' : (xx : 𝓞 K5) * (d4 : 𝓞 K5) ^ 5 + (zz : 𝓞 K5) * 125 = 1 := by
+    have := congrArg (fun t : ℤ => (t : 𝓞 K5)) hxz; push_cast at this; linear_combination this
+  have hδm : lam ^ 3 ∣ (δ : 𝓞 K5) - ((xx * d1 ^ 5 : ℤ) : 𝓞 K5) := by
+    have := dvd_add (dvd_mul_of_dvd_right hδd (xx : 𝓞 K5))
+      (dvd_mul_of_dvd_right lam3_dvd_125 ((δ : 𝓞 K5) * zz))
+    convert this using 1; push_cast; linear_combination (-(δ : 𝓞 K5)) * hxz'
+  obtain ⟨η, hη⟩ := kummer_lemma δ _ hδm
+  have hδσ : σ (δ : 𝓞 K5) = δ := by
+    rw [hδ, Units.val_mul, map_mul, hu4σ, σ_unit_inv hu1σ]
+  obtain ⟨-, R, hRσ, hRδ⟩ := realify (e := 1) (t := (η : 𝓞 K5)) hδσ δ.ne_zero
+    (by rw [hη, Units.val_one, one_mul, Units.val_pow_eq_pow_val])
+  rw [Units.val_one, one_mul] at hRδ
+  -- the new equation
+  have hRu : IsUnit R := by
+    have : IsUnit (R ^ 5) := by rw [← hRδ]; exact δ.isUnit
+    exact (isUnit_pow_iff (by norm_num)).mp this
+  have hsum0 : ζ ^ 2 * (ζ - 1) * ((u1 : 𝓞 K5) * R1 ^ 5 + (u4 : 𝓞 K5) * R4 ^ 5
+      + φ * (2 ^ j * e0 * S0 ^ 5)) = 0 := by
+    rw [← hR1, ← hR4, ← hB0]
+    linear_combination (y * ζ ^ 5 - y * ζ ^ 4 + ζ ^ 2 * (ρ + y)) * hz5
+  have hz1 : ζ ^ 2 * (ζ - 1) ≠ 0 := mul_ne_zero (pow_ne_zero _ ζ_ne_zero)
+    (sub_ne_zero.mpr ζ_ne_one)
+  have hsum : (u1 : 𝓞 K5) * R1 ^ 5 + (u4 : 𝓞 K5) * R4 ^ 5 = -(φ * (2 ^ j * e0 * S0 ^ 5)) := by
+    have := (mul_eq_zero.mp hsum0).resolve_left hz1; linear_combination this
+  have hu4 : (u4 : 𝓞 K5) = u1 * R ^ 5 := by
+    rw [← hRδ, hδ, Units.val_mul]
+    have : ((u1⁻¹ : (𝓞 K5)ˣ) : 𝓞 K5) * u1 = 1 := Units.inv_mul _
+    linear_combination (-(u4 : 𝓞 K5)) * this
+  have hΦ : ((Φ : (𝓞 K5)ˣ) : 𝓞 K5) = φ := IsUnit.unit_spec _
+  have hE'' : (((-(Φ * u1⁻¹ * e0)) : (𝓞 K5)ˣ) : 𝓞 K5) = -(φ * ((u1⁻¹ : (𝓞 K5)ˣ) : 𝓞 K5) * e0) := by
+    rw [Units.val_neg, Units.val_mul, Units.val_mul, hΦ]
+  have hnew : R1 ^ 5 + (R * R4) ^ 5 = (-(Φ * u1⁻¹ * e0) : (𝓞 K5)ˣ) * 2 ^ j * S0 ^ 5 := by
+    apply mul_left_cancel₀ u1.ne_zero
+    have hinv : (u1 : 𝓞 K5) * ((u1⁻¹ : (𝓞 K5)ˣ) : 𝓞 K5) = 1 := Units.mul_inv _
+    rw [hE'']
+    linear_combination hsum - (R4 ^ 5) * hu4 + (φ * 2 ^ j * e0 * S0 ^ 5) * hinv
+  -- properties of the new solution
+  have hR1d : R1 ∣ ρ + ζ * y :=
+    ⟨ζ ^ 3 * u1 * R1 ^ 4, by linear_combination ζ ^ 3 * hR1 - (ρ + ζ * y) * hz5⟩
+  have hR4d : R4 ∣ ρ + ζ ^ 4 * y :=
+    ⟨ζ ^ 2 * u4 * R4 ^ 4, by linear_combination ζ ^ 2 * hR4 - (ρ + ζ ^ 4 * y) * hz5⟩
+  have c14 : IsCoprime (ρ + ζ * y) (ρ + ζ ^ 4 * y) := by
+    simpa using hcopall 1 4 (by norm_num) (by norm_num)
+  have hcR : IsCoprime R1 (R * R4) :=
+    (isCoprime_mul_unit_left_right hRu R1 R4).mpr
+      ((c14.of_isCoprime_of_dvd_left hR1d).of_isCoprime_of_dvd_right hR4d)
+  have hlRR4 : ¬ lam ∣ R * R4 := by
+    intro h; exact hlR4 (lam_dvd_mul_unit hRu h)
+  have hS0W : S0 ∣ W := dvd_trans ⟨s1 * s2 * s3 * s4, by ring⟩ hass.dvd
+  have hlS0 : ¬ lam ∣ S0 := fun h => hlW (dvd_trans h hS0W)
+  have hRR4σ : σ (R * R4) = R * R4 := by rw [map_mul, hRσ, hR4σ]
+  refine ⟨R1, R * R4, S0, -(Φ * u1⁻¹ * e0), hR1σ, hRR4σ, hcR, hlR1, hlRR4, hlS0, hnew, ?_, ?_⟩
+  · -- norm bound
+    rw [← absNorm_assoc hass, absNorm_mul', absNorm_mul', absNorm_mul', absNorm_mul']
+    have hne : ∀ t : 𝓞 K5, t ∣ W → t ≠ 0 := fun t ht h0 => hW0 (by rw [h0] at ht; exact zero_dvd_iff.mp ht)
+    have hd : ∀ t, t ∣ S0 * s1 * s2 * s3 * s4 → t ∣ W := fun t ht => dvd_trans ht hass.dvd
+    have p1 := absNorm_pos (hne s1 (hd s1 ⟨S0 * s2 * s3 * s4, by ring⟩))
+    have p2 := absNorm_pos (hne s2 (hd s2 ⟨S0 * s1 * s3 * s4, by ring⟩))
+    have p3 := absNorm_pos (hne s3 (hd s3 ⟨S0 * s1 * s2 * s4, by ring⟩))
+    have p4 := absNorm_pos (hne s4 (hd s4 ⟨S0 * s1 * s2 * s3, by ring⟩))
+    calc Ideal.absNorm (Ideal.span {S0}) = Ideal.absNorm (Ideal.span {S0}) * 1 * 1 * 1 * 1 := by ring
+      _ ≤ _ := by gcongr <;> omega
+  · -- backward
+    intro hU
+    obtain ⟨kf', -⟩ := stageR hR1σ hRR4σ hcR hlR1 hlRR4 hlS0 hnew
+    obtain ⟨a, wv, hv, hwv⟩ := unit_decomp' hU.unit
+    rw [IsUnit.unit_spec] at hv
+    have ha := kf' a wv 1 hwv (by rw [one_pow, mul_one]; exact hv)
+    have hza : ζ ^ a = ζ ^ 3 := ζ_pow_eq_of_mod (by omega)
+    rw [hza] at hv
+    have hXY := eq_of_unit_form hR1σ hRR4σ hwv hv
+    have hR1u : IsUnit R1 := isCoprime_self.mp (by rw [← hXY] at hcR; exact hcR)
+    have hR15 : IsUnit (R1 ^ 5) := hR1u.pow 5
+    have hj1 : j = 1 := by
+      rcases hj with h | h
+      · exact h
+      · exfalso; subst h
+        rw [← hXY] at hnew
+        have h2 : (2 : 𝓞 K5) ∣ R1 ^ 5 := by
+          refine ⟨2 * (((-(Φ * u1⁻¹ * e0)) : (𝓞 K5)ˣ) : 𝓞 K5) * S0 ^ 5, ?_⟩
+          apply mul_left_cancel₀ (two_ne_zero : (2 : 𝓞 K5) ≠ 0)
+          linear_combination hnew
+        exact two_prime.not_unit (isUnit_of_dvd_unit h2 hR15)
+    subst hj1
+    rw [← hXY] at hnew
+    have hS0u : IsUnit S0 := by
+      have : R1 ^ 5 = (((-(Φ * u1⁻¹ * e0)) : (𝓞 K5)ˣ) : 𝓞 K5) * S0 ^ 5 :=
+        mul_left_cancel₀ (two_ne_zero : (2 : 𝓞 K5) ≠ 0) (by linear_combination hnew)
+      rw [this] at hR15
+      exact (isUnit_pow_iff (by norm_num)).mp (isUnit_of_mul_isUnit_right hR15)
+    have hR4u : IsUnit R4 := isUnit_of_mul_isUnit_right (hXY ▸ hR1u)
+    -- the unit equation
+    set U1 := (u1 : 𝓞 K5) * R1 ^ 5 with hU1
+    set U4 := (u4 : 𝓞 K5) * R4 ^ 5 with hU4
+    set U0 := (e0 : 𝓞 K5) * S0 ^ 5 with hU0
+    have hU0u : IsUnit U0 := e0.isUnit.mul (hS0u.pow 5)
+    have hU1u : IsUnit U1 := u1.isUnit.mul (hR1u.pow 5)
+    have hU4u : IsUnit U4 := u4.isUnit.mul (hR4u.pow 5)
+    have hsum1 : U1 + U4 = -(φ * (2 * U0)) := by rw [hsum]; ring
+    have hB1' : ρ + ζ * y = ζ ^ 3 * U1 := by linear_combination ζ ^ 3 * hR1 - (ρ + ζ * y) * hz5
+    have hB0' : ρ + y = 2 * U0 := by rw [hB0]; ring
+    have hU0σ : σ U0 = U0 := by
+      have h1 : σ (ρ + y) = ρ + y := by rw [map_add, hσy]; ring
+      rw [hB0'] at h1; rw [map_mul, map_ofNat] at h1
+      exact mul_left_cancel₀ two_ne_zero h1
+    have hU1σ : σ U1 = U1 := by rw [hU1, map_mul, hu1σ, map_pow, hR1σ]
+    set P : (𝓞 K5)ˣ := Φ * hU0u.unit with hP
+    have hPv : (P : 𝓞 K5) = φ * U0 := by rw [hP, Units.val_mul, hΦ, IsUnit.unit_spec]
+    have hPσ : σ (P : 𝓞 K5) = P := by rw [hPv, map_mul, σ_φ, hU0σ]
+    have hinvP : ((P⁻¹ : (𝓞 K5)ˣ) : 𝓞 K5) * (φ * U0) = 1 := by rw [← hPv, Units.inv_mul]
+    set v := -U1 * ((P⁻¹ : (𝓞 K5)ˣ) : 𝓞 K5) with hvdef
+    have hvσ : σ v = v := by rw [hvdef, map_mul, map_neg, hU1σ, σ_unit_inv hPσ]
+    have hvu : IsUnit v := hU1u.neg.mul P⁻¹.isUnit
+    have h2v : IsUnit (2 - v) := by
+      have : 2 - v = -U4 * ((P⁻¹ : (𝓞 K5)ˣ) : 𝓞 K5) := by
+        rw [hvdef]; linear_combination (-(2 : 𝓞 K5)) * hinvP + ((P⁻¹ : (𝓞 K5)ˣ) : 𝓞 K5) * hsum1
+      rw [this]; exact hU4u.neg.mul P⁻¹.isUnit
+    have hkey : lam * ρ = U0 * ((1 + ζ) * v - 2 * ζ) := by
+      rw [hvdef]
+      linear_combination hB1' - ζ * hB0' - ζ ^ 3 * U1 * hinvP
+        + (U1 * U0 * ((P⁻¹ : (𝓞 K5)ˣ) : 𝓞 K5)) * cyc
+        + (ζ ^ 2 * U1 * U0 * ((P⁻¹ : (𝓞 K5)ˣ) : 𝓞 K5)) * hz5
+    have hlv : lam ∣ v - 1 := by
+      have h1 : lam ∣ U0 * ((1 + ζ) * v - 2 * ζ) := ⟨ρ, hkey.symm⟩
+      have h2 := lam_dvd_mul_unit hU0u h1
+      have h3 : lam ∣ 2 * (v - 1) := by
+        have := dvd_add h2 (dvd_mul_of_dvd_left (dvd_refl lam) (v - 2))
+        convert this using 1; ring
+      rcases lam_prime.dvd_or_dvd h3 with h | h
+      · exact absurd h lam_not_dvd_two
+      · exact h
+    have hv1 := unit_eq_two hvσ hvu h2v hlv
+    have hρU : ρ = U0 := by
+      apply mul_left_cancel₀ lam_ne_zero
+      rw [hkey, hv1]; ring
+    rw [hρU]; exact hU0u
+
+
+end StageP
+
 end OMA672Z5
