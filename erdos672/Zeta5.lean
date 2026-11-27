@@ -168,4 +168,52 @@ lemma lam_dvd_int {m : ℤ} (h : lam ∣ (m : 𝓞 K5)) : (5 : ℤ) ∣ m := by
 
 end Conj
 
+section RealUnits
+
+open NumberField.IsCMField
+
+/-- `φ = -ζ² - ζ³`. -/
+lemma φ_eq : φ = -ζ ^ 2 - ζ ^ 3 := by linear_combination cyc
+
+/-- Real elements (fixed by conjugation) are `a + c φ`. -/
+lemma real_form {w : 𝓞 K5} (hw : σ w = w) : ∃ a c : ℤ, w = a + c * φ := by
+  obtain ⟨a, b, c, e, rfl⟩ := exists_coord w
+  have h1 : σ ((a : 𝓞 K5) + b * ζ + c * ζ ^ 2 + e * ζ ^ 3)
+      = ((a - b : ℤ) : 𝓞 K5) + ((-b : ℤ) : 𝓞 K5) * ζ + ((e - b : ℤ) : 𝓞 K5) * ζ ^ 2
+        + ((c - b : ℤ) : 𝓞 K5) * ζ ^ 3 := by
+    simp only [map_add, map_mul, map_pow, map_intCast, σ_ζ]
+    push_cast
+    linear_combination (b : 𝓞 K5) * cyc + ((c : 𝓞 K5) * ζ ^ 3 + e * ζ ^ 7 + e * ζ ^ 2) * ζ_pow_five
+  rw [h1] at hw
+  have := coord_eq hw
+  obtain ⟨-, hb, -, hce⟩ := this
+  refine ⟨a, -c, ?_⟩
+  have hb0 : b = 0 := by omega
+  have hec : e = c := by omega
+  subst hb0; subst hec
+  rw [φ_eq]; push_cast; ring
+
+/-- Coordinates in `1, φ` are unique. -/
+lemma φcoord_eq {x y x' y' : ℤ} (h : (x : 𝓞 K5) + y * φ = x' + y' * φ) : x = x' ∧ y = y' := by
+  rw [φ_eq] at h
+  have := coord_eq (a := x) (b := 0) (c := -y) (e := -y) (a' := x') (b' := 0) (c' := -y')
+    (e' := -y') (by push_cast; linear_combination h)
+  omega
+
+/-- A real unit has norm `±1` in `ℤ[φ]`. -/
+lemma real_unit_norm {a c a' c' : ℤ} (h : ((a : 𝓞 K5) + c * φ) * (a' + c' * φ) = 1) :
+    a ^ 2 + a * c - c ^ 2 = 1 ∨ a ^ 2 + a * c - c ^ 2 = -1 := by
+  have e : ((a * a' + c * c' : ℤ) : 𝓞 K5) + ((a * c' + a' * c + c * c' : ℤ) : 𝓞 K5) * φ
+      = ((1 : ℤ) : 𝓞 K5) + ((0 : ℤ) : 𝓞 K5) * φ := by
+    push_cast; rw [← h]; linear_combination (-(c : 𝓞 K5) * c') * φ_sq
+  obtain ⟨h1, h2⟩ := φcoord_eq e
+  have hn : (a ^ 2 + a * c - c ^ 2) * (a' ^ 2 + a' * c' - c' ^ 2) = 1 := by
+    have : (a ^ 2 + a * c - c ^ 2) * (a' ^ 2 + a' * c' - c' ^ 2)
+        = (a * a' + c * c') ^ 2 + (a * a' + c * c') * (a * c' + a' * c + c * c')
+          - (a * c' + a' * c + c * c') ^ 2 := by ring
+    rw [this, h1, h2]; ring
+  exact Int.eq_one_or_neg_one_of_mul_eq_one hn
+
+end RealUnits
+
 end OMA672Z5
